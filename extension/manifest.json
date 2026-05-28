@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Bilibili Dynamic Inbox",
+  "version": "0.0.1",
+  "description": "Replace bilibili moments content area with inbox app.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://t.bilibili.com/*"
+      ],
+      "js": [
+        "dist/content/content.js"
+      ],
+      "css": [
+        "dist/content/style.css"
+      ],
+      "run_at": "document_start",
+      "match_about_blank": true,
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://t.bilibili.com/*"
+      ],
+      "js": [
+        "dist/inject/index.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    }
+  ]
+}
