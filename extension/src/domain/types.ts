@@ -5,6 +5,7 @@ export interface DynamicItem {
     module_author?: {
       mid?: number | string
       name?: string
+      face?: string
       pub_ts?: number
       pub_time?: string
     }
@@ -17,6 +18,12 @@ export interface DynamicItem {
           title?: string
           cover?: string
           jump_url?: string
+          duration_text?: string
+          duration?: number | string
+          stat?: {
+            play?: number | string
+            danmaku?: number | string
+          }
         }
       }
     }
@@ -29,8 +36,12 @@ export interface VideoDynamicCard {
   videoBvid: string
   title: string
   cover: string
+  durationText: string
+  playCount: number
+  danmakuCount: number
   upMid: string
   upName: string
+  upAvatar: string
   publishAt: number
 }
 

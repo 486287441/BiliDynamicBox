@@ -2,6 +2,7 @@
   <article class="video-card">
     <a class="video-cover-link" :href="videoUrl" target="_blank" rel="noopener noreferrer">
       <img class="video-cover" :src="coverUrl" :alt="card.title" loading="lazy" />
+      <span v-if="card.durationText" class="video-duration-badge">{{ card.durationText }}</span>
     </a>
 
     <div class="video-meta">
@@ -9,7 +10,13 @@
         {{ card.title }}
       </a>
       <div class="video-subtitle">
+        <img v-if="card.upAvatar" class="video-up-avatar" :src="avatarUrl" :alt="card.upName" loading="lazy" />
         <span class="video-up">{{ card.upName }}</span>
+      </div>
+      <div class="video-stats">
+        <span>{{ playCountLabel }} 播放</span>
+        <span>·</span>
+        <span>{{ danmakuLabel }} 弹幕</span>
         <span>·</span>
         <span>{{ publishLabel }}</span>
       </div>
@@ -50,6 +57,10 @@ const coverUrl = computed(() => {
   return props.card.cover ? `${props.card.cover}@672w_378h_1c` : ""
 })
 
+const avatarUrl = computed(() => {
+  return props.card.upAvatar ? `${props.card.upAvatar}@48w_48h_1c_1s` : ""
+})
+
 const videoUrl = computed(() => {
   if (props.card.videoBvid) {
     return `https://www.bilibili.com/video/${props.card.videoBvid}`
@@ -71,4 +82,20 @@ const publishLabel = computed(() => {
 })
 
 const isPending = computed(() => Boolean(props.pendingMap[props.card.dynamicId]))
+
+function formatCount(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "0"
+  }
+  if (value >= 100000000) {
+    return `${(value / 100000000).toFixed(1).replace(/\.0$/, "")}亿`
+  }
+  if (value >= 10000) {
+    return `${(value / 10000).toFixed(1).replace(/\.0$/, "")}万`
+  }
+  return String(value)
+}
+
+const playCountLabel = computed(() => formatCount(props.card.playCount))
+const danmakuLabel = computed(() => formatCount(props.card.danmakuCount))
 </script>

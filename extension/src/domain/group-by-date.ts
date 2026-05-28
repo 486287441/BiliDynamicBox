@@ -18,6 +18,22 @@ function buildDateKey(timestampSec: number): string {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
+export function getDateGroupKey(timestampSec: number): string {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const todayStartMs = now.getTime()
+  const yesterdayStartMs = todayStartMs - 24 * 60 * 60 * 1000
+  const dayStartMs = getDayStartMs(timestampSec)
+
+  if (dayStartMs === todayStartMs) {
+    return "today"
+  }
+  if (dayStartMs === yesterdayStartMs) {
+    return "yesterday"
+  }
+  return buildDateKey(timestampSec)
+}
+
 export function groupByDate(cards: VideoDynamicCard[]): DateGroup[] {
   const now = new Date()
   now.setHours(0, 0, 0, 0)
@@ -45,7 +61,7 @@ export function groupByDate(cards: VideoDynamicCard[]): DateGroup[] {
       continue
     }
 
-    const key = buildDateKey(card.publishAt)
+    const key = getDateGroupKey(card.publishAt)
     const bucket = olderMap.get(key) ?? []
     bucket.push(card)
     olderMap.set(key, bucket)

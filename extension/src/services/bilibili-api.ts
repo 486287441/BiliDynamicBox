@@ -10,52 +10,41 @@ interface MomentsApiResponse {
   }
 }
 
-export async function fetchMomentsItems(): Promise<DynamicItem[]> {
-  const targetVideoCount = 400
-  const maxPages = 30
-  let offset = ""
-  let page = 0
-  let hasMore = true
+export interface MomentsPageResult {
+  items: DynamicItem[]
+  nextOffset: string
+  hasMore: boolean
+}
 
-  const merged: DynamicItem[] = []
-  const seen = new Set<string>()
-
-  while (hasMore && page < maxPages && merged.length < targetVideoCount) {
-    const url = new URL("https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all")
-    url.searchParams.set("type", "video")
-    if (offset) {
-      url.searchParams.set("offset", offset)
-    }
-
-    const response = await fetch(url.toString(), {
-      credentials: "include",
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch moments: ${response.status}`)
-    }
-
-    const payload = (await response.json()) as MomentsApiResponse
-    if (typeof payload.code === "number" && payload.code !== 0) {
-      throw new Error(`Moments API error code: ${payload.code}`)
-    }
-
-    const items = Array.isArray(payload.data?.items) ? payload.data.items : []
-    for (const item of items) {
-      const id = typeof item.id_str === "string" ? item.id_str : ""
-      if (!id || seen.has(id)) {
-        continue
-      }
-      seen.add(id)
-      merged.push(item)
-    }
-
-    offset = typeof payload.data?.offset === "string" ? payload.data.offset : ""
-    hasMore = Boolean(payload.data?.has_more && offset)
-    page += 1
+export async function fetchMomentsPage(offset = ""): Promise<MomentsPageResult> {
+  const url = new URL("https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all")
+  url.searchParams.set("type", "video")
+  if (offset) {
+    url.searchParams.set("offset", offset)
   }
 
-  return merged.slice(0, targetVideoCount)
+  const response = await fetch(url.toString(), {
+    credentials: "include",
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch moments: ${response.status}`)
+  }
+
+  const payload = (await response.json()) as MomentsApiResponse
+  if (typeof payload.code === "number" && payload.code !== 0) {
+    throw new Error(`Moments API error code: ${payload.code}`)
+  }
+
+  const items = Array.isArray(payload.data?.items) ? payload.data.items : []
+  const nextOffset = typeof payload.data?.offset === "string" ? payload.data.offset : ""
+  const hasMore = Boolean(payload.data?.has_more && nextOffset)
+
+  return {
+    items,
+    nextOffset,
+    hasMore,
+  }
 }
 
 interface CommonApiResponse {

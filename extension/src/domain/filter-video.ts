@@ -30,6 +30,35 @@ function toTimestamp(value: unknown): number {
   return Math.floor(Date.now() / 1000)
 }
 
+function toNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value))
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, Math.floor(parsed))
+    }
+  }
+  return fallback
+}
+
+function formatDurationText(rawText: string, durationSeconds: number): string {
+  if (rawText) {
+    return rawText
+  }
+  if (durationSeconds <= 0) {
+    return ""
+  }
+  const hour = Math.floor(durationSeconds / 3600)
+  const minute = Math.floor((durationSeconds % 3600) / 60)
+  const second = durationSeconds % 60
+  if (hour > 0) {
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}`
+  }
+  return `${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}`
+}
+
 function isVideoDynamic(item: DynamicItem): boolean {
   const itemType = toText(item.type)
   const majorType = toText(item.modules?.module_dynamic?.major?.type)
@@ -48,7 +77,11 @@ function mapToCard(item: DynamicItem): VideoDynamicCard | null {
   const aid = toText(archive.aid)
   const upMid = toText(item.modules?.module_author?.mid)
   const upName = toText(item.modules?.module_author?.name, "未知UP")
+  const upAvatar = toText(item.modules?.module_author?.face)
   const title = toText(archive.title, "未命名视频")
+  const playCount = toNumber(archive.stat?.play)
+  const danmakuCount = toNumber(archive.stat?.danmaku)
+  const durationText = formatDurationText(toText(archive.duration_text), toNumber(archive.duration))
 
   if (!dynamicId) {
     return null
@@ -60,8 +93,12 @@ function mapToCard(item: DynamicItem): VideoDynamicCard | null {
     videoBvid: bvid,
     title,
     cover: toText(archive.cover),
+    durationText,
+    playCount,
+    danmakuCount,
     upMid,
     upName,
+    upAvatar,
     publishAt: toTimestamp(item.modules?.module_author?.pub_ts ?? item.modules?.module_author?.pub_time),
   }
 }

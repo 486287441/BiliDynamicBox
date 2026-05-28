@@ -4,6 +4,12 @@ body {
   padding: 0;
 }
 
+html.bewly-inbox-page,
+body.bewly-inbox-page {
+  height: 100%;
+  overflow: hidden !important;
+}
+
 #bewly-inbox-root {
   position: fixed;
   inset: 0;
@@ -69,6 +75,13 @@ body {
   margin-top: 12px;
 }
 
+.inbox-load-more-tip {
+  margin: 10px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  text-align: center;
+}
+
 .group-block {
   margin-bottom: 36px;
 }
@@ -101,6 +114,7 @@ body {
   min-width: 0;
   aspect-ratio: 16 / 9;
   background: #f3f4f6;
+  position: relative;
 }
 
 .video-cover {
@@ -113,6 +127,20 @@ body {
 .video-meta {
   padding: 8px 8px 0;
   min-width: 0;
+}
+
+.video-duration-badge {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
 }
 
 .video-title {
@@ -140,11 +168,31 @@ body {
   font-size: 11px;
 }
 
+.video-up-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
 .video-up {
-  max-width: 150px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.video-stats {
+  margin-top: 4px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .video-actions {

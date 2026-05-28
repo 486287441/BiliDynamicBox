@@ -1,18 +1,5 @@
 <template>
   <main class="inbox-shell">
-    <header class="inbox-header">
-      <h1>动态收件箱</h1>
-      <p>只展示视频动态，支持想看 / 不想看快速决策。</p>
-    </header>
-
-    <section class="inbox-stats">
-      <p>原始动态：{{ inbox.rawTotal }}</p>
-      <p>视频动态：{{ inbox.videoTotal }}</p>
-      <button class="refresh-button" type="button" :disabled="inbox.loading" @click="refresh">
-        {{ inbox.loading ? "加载中..." : "刷新动态" }}
-      </button>
-    </section>
-
     <section v-if="inbox.error" class="inbox-error">
       {{ inbox.error }}
     </section>
@@ -23,16 +10,19 @@
         :key="group.key"
         :group="group"
         :pending-map="decision.pendingMap"
+        :final-count-map="inbox.finalGroupCounts"
         @want-watch="onWantWatch"
         @dislike="onDislike"
       />
       <p v-if="!inbox.loading && inbox.groups.length === 0">暂无可展示的视频动态。</p>
+      <p v-if="inbox.loadingMore" class="inbox-load-more-tip">正在加载更多...</p>
+      <p v-else-if="!inbox.hasMore && inbox.groups.length > 0" class="inbox-load-more-tip">已经到底了</p>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue"
+import { onMounted, onUnmounted } from "vue"
 
 import type { VideoDynamicCard } from "../domain/types"
 import InboxGroup from "../components/InboxGroup.vue"
@@ -41,10 +31,8 @@ import { useInboxStore } from "../store/inbox"
 
 const inbox = useInboxStore()
 const decision = useDecisionStore()
-
-async function refresh(): Promise<void> {
-  await inbox.load()
-}
+let scrollRoot: HTMLElement | null = null
+let onScrollHandler: (() => void) | null = null
 
 async function onWantWatch(card: VideoDynamicCard): Promise<void> {
   await decision.markWantWatch(card)
@@ -55,6 +43,27 @@ function onDislike(card: VideoDynamicCard): void {
 }
 
 onMounted(() => {
-  void refresh()
+  void inbox.load(true)
+
+  const root = document.getElementById("bewly-inbox-root")
+  if (!(root instanceof HTMLElement)) {
+    return
+  }
+
+  scrollRoot = root
+  onScrollHandler = () => {
+    const distanceToBottom = root.scrollHeight - root.scrollTop - root.clientHeight
+    if (distanceToBottom < 600) {
+      void inbox.loadMore()
+    }
+  }
+
+  root.addEventListener("scroll", onScrollHandler, { passive: true })
+})
+
+onUnmounted(() => {
+  if (scrollRoot && onScrollHandler) {
+    scrollRoot.removeEventListener("scroll", onScrollHandler)
+  }
 })
 </script>
