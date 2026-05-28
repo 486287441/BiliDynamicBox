@@ -1,45 +1,21 @@
 import { defineStore } from "pinia"
 
+import { shouldPromptUnfollow } from "../domain/decision-rules"
 import type { VideoDynamicCard } from "../domain/types"
-import { saveToWatchLater } from "../services/bilibili-api"
+import { saveToWatchLater, unfollowUp } from "../services/bilibili-api"
+import { readPersistedState, writePersistedState } from "../services/storage"
 import { showToast } from "../services/toast"
 import { useInboxStore } from "./inbox"
+import { useTrashStore } from "./trash"
 
-const DISLIKED_KEY = "bewly:disliked-dynamic-ids"
-
-function readDislikedIds(): Set<string> {
-  try {
-    const raw = localStorage.getItem(DISLIKED_KEY)
-    if (!raw) {
-      return new Set()
-    }
-    const list = JSON.parse(raw) as unknown
-    if (!Array.isArray(list)) {
-      return new Set()
-    }
-    return new Set(
-      list
-        .filter((item) => typeof item === "string")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    )
-  } catch {
-    return new Set()
-  }
-}
-
-function writeDislikedIds(ids: Set<string>): void {
-  try {
-    localStorage.setItem(DISLIKED_KEY, JSON.stringify([...ids]))
-  } catch {
-    // Ignore storage failure to avoid blocking UX.
-  }
-}
+const persistedState = readPersistedState()
 
 export const useDecisionStore = defineStore("decision", {
   state: () => ({
     pendingMap: {} as Record<string, boolean>,
-    dislikedIds: readDislikedIds(),
+    dislikedIds: new Set(persistedState.dislikedDynamicIds),
+    upDislikeCounts: { ...persistedState.upDislikeCounts } as Record<string, number>,
+    promptingUpMid: "",
   }),
   actions: {
     async markWantWatch(card: VideoDynamicCard): Promise<void> {
@@ -62,12 +38,70 @@ export const useDecisionStore = defineStore("decision", {
       if (!card.dynamicId) {
         return
       }
+      if (this.dislikedIds.has(card.dynamicId)) {
+        return
+      }
       this.dislikedIds.add(card.dynamicId)
-      writeDislikedIds(this.dislikedIds)
+      if (card.upMid) {
+        this.upDislikeCounts[card.upMid] = (this.upDislikeCounts[card.upMid] ?? 0) + 1
+      }
+
+      const trash = useTrashStore()
+      trash.add(card)
+
+      writePersistedState({
+        dislikedDynamicIds: [...this.dislikedIds],
+        trashItems: trash.items,
+        upDislikeCounts: this.upDislikeCounts,
+      })
 
       const inbox = useInboxStore()
       inbox.removeCard(card.dynamicId)
       showToast("已隐藏该动态")
+
+      if (card.upMid) {
+        void this.maybePromptUnfollow(card.upMid, card.upName)
+      }
+    },
+    restoreDisliked(card: VideoDynamicCard): void {
+      if (!card.dynamicId) {
+        return
+      }
+      this.dislikedIds.delete(card.dynamicId)
+      const trash = useTrashStore()
+      trash.remove(card.dynamicId)
+      writePersistedState({
+        dislikedDynamicIds: [...this.dislikedIds],
+        trashItems: trash.items,
+        upDislikeCounts: this.upDislikeCounts,
+      })
+    },
+    async maybePromptUnfollow(upMid: string, upName: string): Promise<void> {
+      if (!upMid || this.promptingUpMid === upMid) {
+        return
+      }
+      const count = this.upDislikeCounts[upMid] ?? 0
+      if (!shouldPromptUnfollow(count)) {
+        return
+      }
+
+      this.promptingUpMid = upMid
+      try {
+        const displayName = upName || "该 UP"
+        const confirmed = window.confirm(
+          `你已连续 ${count} 次对 ${displayName} 点“不想看”，是否现在取关？`,
+        )
+        if (!confirmed) {
+          return
+        }
+        await unfollowUp(upMid)
+        showToast(`已取关 ${displayName}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "未知错误"
+        showToast(`取关失败：${message}`, "error")
+      } finally {
+        this.promptingUpMid = ""
+      }
     },
   },
 })

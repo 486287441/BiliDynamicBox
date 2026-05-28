@@ -75,6 +75,61 @@ body.bewly-inbox-page {
   margin-top: 12px;
 }
 
+.top-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 8px 4px;
+  margin-bottom: 8px;
+  background: rgba(244, 246, 251, 0.95);
+  backdrop-filter: blur(4px);
+}
+
+.top-toolbar-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.top-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.toolbar-search-input {
+  width: min(420px, 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #fff;
+  color: #111827;
+  font-size: 13px;
+}
+
+.toolbar-search-input:focus {
+  border-color: #fb7299;
+  outline: none;
+}
+
+.trash-entry-button {
+  border: 1px solid #fbc2d3;
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: #fff;
+  color: #fb7299;
+  cursor: pointer;
+}
+
+.trash-entry-button:hover {
+  background: #fff5f8;
+}
+
 .inbox-load-more-tip {
   margin: 10px 0 0;
   color: #6b7280;
@@ -274,6 +329,93 @@ body.bewly-inbox-page {
   background: #dc3545;
 }
 
+.trash-modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  background: rgba(17, 24, 39, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.trash-modal-panel {
+  width: min(680px, 100%);
+  max-height: min(640px, 90vh);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(17, 24, 39, 0.22);
+  display: flex;
+  flex-direction: column;
+}
+
+.trash-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eceff3;
+}
+
+.trash-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.trash-close-button {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #6b7280;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.trash-empty-tip {
+  margin: 0;
+  padding: 18px 14px;
+  color: #6b7280;
+}
+
+.trash-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+}
+
+.trash-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.trash-item-title {
+  margin: 0;
+  color: #111827;
+  font-size: 14px;
+}
+
+.trash-item-sub {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.trash-restore-button {
+  border: 1px solid #b9ecda;
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #0f766e;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
 @media (max-width: 900px) {
   .inbox-shell {
     max-width: 100%;
@@ -283,6 +425,19 @@ body.bewly-inbox-page {
   .group-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+  }
+
+  .top-toolbar {
+    align-items: flex-start;
+  }
+
+  .top-toolbar-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-search-input {
+    width: 100%;
   }
 
   .video-actions {

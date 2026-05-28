@@ -96,3 +96,40 @@ export async function saveToWatchLater(card: VideoDynamicCard): Promise<void> {
     throw new Error(result.message || `接口错误: ${result.code}`)
   }
 }
+
+export async function unfollowUp(upMid: string): Promise<void> {
+  const mid = Number(upMid)
+  if (!Number.isFinite(mid) || mid <= 0) {
+    throw new Error("UP 主 mid 无效")
+  }
+
+  const csrf = getCsrfTokenFromCookie()
+  if (!csrf) {
+    throw new Error("缺少登录凭证")
+  }
+
+  const payload = new URLSearchParams()
+  payload.set("fid", String(mid))
+  payload.set("act", "2")
+  payload.set("re_src", "11")
+  payload.set("jsonp", "jsonp")
+  payload.set("csrf", csrf)
+
+  const response = await fetch("https://api.bilibili.com/x/relation/modify", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+    body: payload.toString(),
+  })
+
+  if (!response.ok) {
+    throw new Error(`接口请求失败: ${response.status}`)
+  }
+
+  const result = (await response.json()) as CommonApiResponse
+  if (result.code !== 0) {
+    throw new Error(result.message || `接口错误: ${result.code}`)
+  }
+}

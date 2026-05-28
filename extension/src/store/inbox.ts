@@ -4,29 +4,9 @@ import { filterVideoDynamics } from "../domain/filter-video"
 import { getDateGroupKey, groupByDate } from "../domain/group-by-date"
 import type { DateGroup, VideoDynamicCard } from "../domain/types"
 import { fetchMomentsPage } from "../services/bilibili-api"
+import { readPersistedState } from "../services/storage"
 
-const DISLIKED_KEY = "bewly:disliked-dynamic-ids"
-
-function readHiddenIds(): Set<string> {
-  try {
-    const raw = localStorage.getItem(DISLIKED_KEY)
-    if (!raw) {
-      return new Set()
-    }
-    const list = JSON.parse(raw) as unknown
-    if (!Array.isArray(list)) {
-      return new Set()
-    }
-    return new Set(
-      list
-        .filter((item) => typeof item === "string")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    )
-  } catch {
-    return new Set()
-  }
-}
+const persistedState = readPersistedState()
 
 interface InboxState {
   loading: boolean
@@ -58,7 +38,7 @@ export const useInboxStore = defineStore("inbox", {
     rawTotal: 0,
     videoTotal: 0,
     groups: [],
-    hiddenIds: readHiddenIds(),
+    hiddenIds: new Set(persistedState.dislikedDynamicIds),
     seenRawIds: new Set(),
     allCards: [],
     seenCardIds: new Set(),
@@ -146,6 +126,13 @@ export const useInboxStore = defineStore("inbox", {
         }
       }
       this.hiddenIds.add(dynamicId)
+      this.rebuildGroups()
+    },
+    restoreCard(dynamicId: string) {
+      if (!dynamicId || !this.hiddenIds.has(dynamicId)) {
+        return
+      }
+      this.hiddenIds.delete(dynamicId)
       this.rebuildGroups()
     },
     async load(reset = true) {
