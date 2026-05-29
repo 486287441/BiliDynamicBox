@@ -22,7 +22,7 @@
         :group="group"
         :pending-map="decision.pendingMap"
         :want-watch-map="wantWatchMap"
-        :final-count-map="searchQuery.trim() ? {} : inbox.finalGroupCounts"
+        :final-count-map="filteredFinalGroupCounts"
         @want-watch="onWantWatch"
         @dislike="onDislike"
       />
@@ -51,6 +51,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue"
 
 import TopToolbar from "../components/TopToolbar.vue"
 import TrashModal from "../components/TrashModal.vue"
+import { getDateGroupKey } from "../domain/group-by-date"
 import type { DateGroup, VideoDynamicCard } from "../domain/types"
 import InboxGroup from "../components/InboxGroup.vue"
 import { useDecisionStore } from "../store/decision"
@@ -83,6 +84,9 @@ function getScrollRoot(): HTMLElement | null {
 }
 
 const normalizedQuery = computed(() => searchQuery.value.trim().toLocaleLowerCase())
+const hasActiveDisplayFilters = computed(
+  () => normalizedQuery.value.length > 0 || minDurationSeconds.value > 0 || hideWantWatch.value,
+)
 const minDurationSeconds = computed(() => {
   const text = minDurationMinutes.value.trim()
   if (!text) {
@@ -124,6 +128,21 @@ const displayGroups = computed<DateGroup[]>(() => {
       }
     })
     .filter((group) => group.items.length > 0)
+})
+
+const filteredFinalGroupCounts = computed(() => {
+  if (!hasActiveDisplayFilters.value) {
+    return inbox.finalGroupCounts
+  }
+  const counts: Record<string, number> = {}
+  for (const card of Object.values(inbox.countedCards)) {
+    if (!passesDisplayFilters(card)) {
+      continue
+    }
+    const key = getDateGroupKey(card.publishAt)
+    counts[key] = (counts[key] ?? 0) + 1
+  }
+  return counts
 })
 
 const visibleCardCount = computed(() => {
@@ -172,7 +191,7 @@ function onRestore(dynamicId: string): void {
     return
   }
   decision.restoreDisliked(item.card)
-  inbox.restoreCard(dynamicId)
+  inbox.restoreCard(dynamicId, item.card)
   showToast("已恢复到收件箱")
 }
 
@@ -181,7 +200,7 @@ function onRestoreAll(): void {
   if (count === 0) {
     return
   }
-  inbox.restoreAllHidden()
+  inbox.restoreAllHidden(trash.items.map((item) => item.card))
   decision.clearAllDisliked()
   showToast(`已恢复 ${count} 条视频`)
 }

@@ -32,6 +32,7 @@ interface InboxState {
   allCards: VideoDynamicCard[]
   seenCardIds: Set<string>
   countedCardIds: Set<string>
+  countedCards: Record<string, VideoDynamicCard>
   finalGroupCounts: Record<string, number>
   countingFinalCounts: boolean
   finalCountsReady: boolean
@@ -54,6 +55,7 @@ export const useInboxStore = defineStore("inbox", {
     allCards: [],
     seenCardIds: new Set(),
     countedCardIds: new Set(),
+    countedCards: {},
     finalGroupCounts: {},
     countingFinalCounts: false,
     finalCountsReady: false,
@@ -70,6 +72,7 @@ export const useInboxStore = defineStore("inbox", {
       const key = getDateGroupKey(card.publishAt)
       this.finalGroupCounts[key] = (this.finalGroupCounts[key] ?? 0) + 1
       this.countedCardIds.add(card.dynamicId)
+      this.countedCards[card.dynamicId] = card
     },
     addCountsForCards(cards: VideoDynamicCard[]) {
       for (const card of cards) {
@@ -219,28 +222,42 @@ export const useInboxStore = defineStore("inbox", {
       if (!dynamicId) {
         return
       }
-      const card = this.allCards.find((item) => item.dynamicId === dynamicId)
+      const card = this.countedCards[dynamicId] ?? this.allCards.find((item) => item.dynamicId === dynamicId)
       if (card) {
         const key = getDateGroupKey(card.publishAt)
         if (this.finalGroupCounts[key] && this.finalGroupCounts[key] > 0) {
           this.finalGroupCounts[key] -= 1
         }
+        this.countedCardIds.delete(dynamicId)
+        delete this.countedCards[dynamicId]
       }
       this.hiddenIds.add(dynamicId)
       this.rebuildGroups()
     },
-    restoreCard(dynamicId: string) {
+    restoreCard(dynamicId: string, card?: VideoDynamicCard) {
       if (!dynamicId || !this.hiddenIds.has(dynamicId)) {
         return
       }
       this.hiddenIds.delete(dynamicId)
+      const resolvedCard = card ?? this.allCards.find((item) => item.dynamicId === dynamicId)
+      if (resolvedCard) {
+        this.addCountForCard(resolvedCard)
+      }
       this.rebuildGroups()
     },
-    restoreAllHidden(): void {
+    restoreAllHidden(cards: VideoDynamicCard[] = []): void {
       if (this.hiddenIds.size === 0) {
         return
       }
+      const cardById = new Map(cards.map((card) => [card.dynamicId, card]))
+      const restoringIds = [...this.hiddenIds]
       this.hiddenIds.clear()
+      for (const dynamicId of restoringIds) {
+        const card = cardById.get(dynamicId) ?? this.allCards.find((item) => item.dynamicId === dynamicId)
+        if (card) {
+          this.addCountForCard(card)
+        }
+      }
       this.rebuildGroups()
     },
     async load(reset = true, options?: { silent?: boolean }) {
@@ -264,6 +281,7 @@ export const useInboxStore = defineStore("inbox", {
         this.seenRawIds.clear()
         this.seenCardIds.clear()
         this.countedCardIds.clear()
+        this.countedCards = {}
         this.allCards = []
         this.finalGroupCounts = {}
         this.countingFinalCounts = false
