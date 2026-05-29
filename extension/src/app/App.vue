@@ -31,7 +31,7 @@
       <p v-else-if="!inbox.loading && !isFillingList && displayGroups.length === 0">
         {{ normalizedQuery || minDurationSeconds > 0 ? "没有匹配到筛选条件的视频。" : "暂无可展示的视频动态。" }}
       </p>
-      <p v-else-if="inbox.loadingMore" class="inbox-load-more-tip">正在加载更多...</p>
+      <p v-else-if="inbox.loadingMore && !inbox.prefetching" class="inbox-load-more-tip">正在加载更多...</p>
       <p v-else-if="!inbox.hasMore && displayGroups.length > 0" class="inbox-load-more-tip">已经到底了</p>
     </section>
 
@@ -41,6 +41,7 @@
       @close="trash.setOpen(false)"
       @restore="onRestore"
       @restore-all="onRestoreAll"
+      @clear-all="onClearAll"
     />
   </main>
 </template>
@@ -67,6 +68,7 @@ const minDurationMinutes = ref(persistedState.minDurationMinutes)
 const hideWantWatch = ref(persistedState.hideWantWatch)
 let scrollRoot: HTMLElement | null = null
 let onScrollHandler: (() => void) | null = null
+let scrollRaf = 0
 
 function getScrollRoot(): HTMLElement | null {
   if (scrollRoot instanceof HTMLElement) {
@@ -184,6 +186,21 @@ function onRestoreAll(): void {
   showToast(`已恢复 ${count} 条视频`)
 }
 
+function onClearAll(): void {
+  const count = trash.items.length
+  if (count === 0) {
+    return
+  }
+  const confirmed = window.confirm(
+    `确认清空垃圾箱中的 ${count} 条记录？清空后不会恢复到收件箱。`,
+  )
+  if (!confirmed) {
+    return
+  }
+  decision.clearAllDisliked()
+  showToast(`已清空 ${count} 条记录`)
+}
+
 onMounted(() => {
   const root = getScrollRoot()
   if (!root) {
@@ -193,16 +210,23 @@ onMounted(() => {
   void inbox.bootstrap(root)
 
   onScrollHandler = () => {
-    const distanceToBottom = root.scrollHeight - root.scrollTop - root.clientHeight
-    if (distanceToBottom < 600) {
-      void inbox.loadMore()
+    if (scrollRaf) {
+      return
     }
+    scrollRaf = window.requestAnimationFrame(() => {
+      scrollRaf = 0
+      void inbox.maintainScrollBuffer(root)
+    })
   }
 
   root.addEventListener("scroll", onScrollHandler, { passive: true })
 })
 
 onUnmounted(() => {
+  if (scrollRaf) {
+    window.cancelAnimationFrame(scrollRaf)
+    scrollRaf = 0
+  }
   if (scrollRoot && onScrollHandler) {
     scrollRoot.removeEventListener("scroll", onScrollHandler)
   }

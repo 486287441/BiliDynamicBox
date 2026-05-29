@@ -1,4 +1,5 @@
 import { mountInboxApp } from "../app/main"
+import { startInboxFirstPagePreload } from "../services/inbox-preload"
 import { isTargetMomentsPage, waitForDocumentReady } from "./host-detect"
 import {
   ensureAppContainer,
@@ -28,6 +29,8 @@ async function bootstrap(): Promise<void> {
     bootstrapPending = false
     return
   }
+
+  startInboxFirstPagePreload()
 
   try {
     await waitForDocumentReady()

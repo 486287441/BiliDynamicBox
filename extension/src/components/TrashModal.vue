@@ -12,6 +12,14 @@
           >
             全部恢复
           </button>
+          <button
+            v-if="items.length > 0"
+            class="trash-clear-all-button"
+            type="button"
+            @click="$emit('clear-all')"
+          >
+            全部清空
+          </button>
           <button class="trash-close-button" type="button" @click="$emit('close')">关闭</button>
         </div>
       </header>
@@ -44,6 +52,7 @@ defineEmits<{
   (event: "close"): void
   (event: "restore", dynamicId: string): void
   (event: "restore-all"): void
+  (event: "clear-all"): void
 }>()
 
 function formatRemovedAt(timestamp: number): string {

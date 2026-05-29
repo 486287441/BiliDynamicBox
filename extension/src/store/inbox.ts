@@ -4,13 +4,18 @@ import { filterVideoDynamics } from "../domain/filter-video"
 import { getDateGroupKey, groupByDate } from "../domain/group-by-date"
 import type { DateGroup, VideoDynamicCard } from "../domain/types"
 import { fetchMomentsPage } from "../services/bilibili-api"
+import { takeInboxFirstPagePreload } from "../services/inbox-preload"
 import { readPersistedState } from "../services/storage"
+import { getDistanceToBottom, getScrollBufferPx, waitForLayout } from "../utils/layout"
 
 const persistedState = readPersistedState()
 
 const MIN_VISIBLE_CARDS = 18
 const MAX_AUTOFILL_PAGES = 20
+const MAX_BUFFER_PAGES = 8
 const VIEWPORT_GAP_PX = 160
+const SCROLL_BUFFER_VIEWPORTS = 1
+const SCROLL_PREFETCH_VIEWPORTS = 2
 
 interface InboxState {
   loading: boolean
@@ -132,6 +137,50 @@ export const useInboxStore = defineStore("inbox", {
       }
       return scrollRoot.scrollHeight <= scrollRoot.clientHeight + VIEWPORT_GAP_PX
     },
+    needsScrollBuffer(scrollRoot: HTMLElement | null): boolean {
+      if (!scrollRoot || !this.hasMore) {
+        return false
+      }
+      return getDistanceToBottom(scrollRoot) < getScrollBufferPx(scrollRoot, SCROLL_PREFETCH_VIEWPORTS)
+    },
+    hasScrollBuffer(scrollRoot: HTMLElement | null): boolean {
+      if (!scrollRoot) {
+        return true
+      }
+      return getDistanceToBottom(scrollRoot) >= getScrollBufferPx(scrollRoot, SCROLL_BUFFER_VIEWPORTS)
+    },
+    async maintainScrollBuffer(scrollRoot: HTMLElement | null = null): Promise<void> {
+      if (!scrollRoot || !this.hasMore || this.error) {
+        return
+      }
+      if (this.prefetching || this.loading || this.loadingMore) {
+        return
+      }
+      if (!this.needsScrollBuffer(scrollRoot)) {
+        return
+      }
+
+      this.prefetching = true
+      try {
+        let loadedPages = 0
+        while (this.hasMore && loadedPages < MAX_BUFFER_PAGES) {
+          if (this.hasScrollBuffer(scrollRoot)) {
+            break
+          }
+          await this.load(false, { silent: true })
+          loadedPages += 1
+          if (this.error) {
+            break
+          }
+          await waitForLayout()
+        }
+      } finally {
+        this.prefetching = false
+        if (scrollRoot && this.needsScrollBuffer(scrollRoot) && this.hasMore && !this.error) {
+          void this.maintainScrollBuffer(scrollRoot)
+        }
+      }
+    },
     async ensureViewportFilled(scrollRoot: HTMLElement | null = null, maxPages = MAX_AUTOFILL_PAGES): Promise<void> {
       if (!this.hasMore || this.error || this.prefetching) {
         return
@@ -157,12 +206,14 @@ export const useInboxStore = defineStore("inbox", {
     async bootstrap(scrollRoot: HTMLElement | null = null): Promise<void> {
       await this.load(true)
       await this.ensureViewportFilled(scrollRoot)
+      await this.maintainScrollBuffer(scrollRoot)
     },
     async refresh(scrollRoot: HTMLElement | null = null): Promise<void> {
       await this.bootstrap(scrollRoot)
     },
     async fillAfterHide(scrollRoot: HTMLElement | null = null): Promise<void> {
       await this.ensureViewportFilled(scrollRoot, 10)
+      await this.maintainScrollBuffer(scrollRoot)
     },
     removeCard(dynamicId: string) {
       if (!dynamicId) {
@@ -192,13 +243,15 @@ export const useInboxStore = defineStore("inbox", {
       this.hiddenIds.clear()
       this.rebuildGroups()
     },
-    async load(reset = true) {
+    async load(reset = true, options?: { silent?: boolean }) {
       if (this.loading || this.loadingMore) {
         return
       }
       if (!reset && !this.hasMore) {
         return
       }
+
+      const silent = Boolean(options?.silent)
 
       if (reset) {
         this.loading = true
@@ -216,13 +269,22 @@ export const useInboxStore = defineStore("inbox", {
         this.countingFinalCounts = false
         this.finalCountsReady = false
         this.countScanToken += 1
-      } else {
+      } else if (!silent) {
         this.loadingMore = true
       }
 
       this.error = null
       try {
-        const page = await fetchMomentsPage(this.nextOffset)
+        let page
+        if (reset) {
+          const preloaded = takeInboxFirstPagePreload()
+          page =
+            preloaded?.ok === true
+              ? preloaded.page
+              : await fetchMomentsPage(this.nextOffset)
+        } else {
+          page = await fetchMomentsPage(this.nextOffset)
+        }
         this.nextOffset = page.nextOffset
         this.hasMore = page.hasMore
 
@@ -268,8 +330,8 @@ export const useInboxStore = defineStore("inbox", {
         }
       }
     },
-    async loadMore() {
-      await this.load(false)
+    async loadMore(scrollRoot: HTMLElement | null = null) {
+      await this.maintainScrollBuffer(scrollRoot)
     },
   },
 })
