@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Secrets & credentials (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+*cookies*.txt
+*.local
+
+# Packaged / distributable builds (build locally or in CI)
+*.zip
+*.crx
+*.xpi
+dist.zip
+extension.zip
+billbillRead-extension.zip
+
+# OS & editors
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+
+# Logs & tool caches
+*.log
+.npm/
+.cache/
+.vite/
+dist-ssr/
+web-ext-profile/
+
+# Debug & temporary unpack dirs
+debug-*.png
+__zip_check/
+__zip_check*/
+kami-font-demo.html
+
+# Upstream style reference (clone locally if needed; not part of this extension)
+BewlyBewly-main/

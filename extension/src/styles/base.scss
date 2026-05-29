@@ -17,6 +17,13 @@ body.bewly-inbox-page {
   overflow: auto;
   background: #f4f6fb;
   width: 100vw;
+  font-family: Charter, "Charter BT", "TsangerJinKai02 W04", "仓耳今楷", "PingFang SC", "Microsoft YaHei", serif;
+  font-size: 14.8px;
+  font-feature-settings: "tnum";
+}
+
+#bewly-inbox-root * {
+  font-family: inherit !important;
 }
 
 .inbox-shell {
@@ -27,7 +34,7 @@ body.bewly-inbox-page {
   margin: 0;
   padding: 14px 8px 20px;
   color: #18191c;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font: inherit;
 }
 
 .inbox-header h1 {
@@ -76,17 +83,19 @@ body.bewly-inbox-page {
 }
 
 .top-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr minmax(320px, 520px) 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 8px 4px;
+  padding: 10px 12px;
   margin-bottom: 8px;
-  background: rgba(244, 246, 251, 0.95);
-  backdrop-filter: blur(4px);
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
 }
 
 .top-toolbar-title {
@@ -94,40 +103,147 @@ body.bewly-inbox-page {
   font-size: 20px;
 }
 
-.top-toolbar-left {
+.top-toolbar-center {
   display: flex;
+  justify-content: center;
+}
+
+.top-toolbar-actions {
+  display: flex;
+  justify-self: end;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex: 1;
+  gap: 8px;
+  position: relative;
 }
 
 .toolbar-search-input {
-  width: min(420px, 100%);
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: #fff;
+  width: 100%;
+  border: 1px solid #e6eaf0;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: #ffffff;
   color: #111827;
   font-size: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.toolbar-duration-input {
+  width: 100%;
+  box-sizing: border-box;
+  flex: none;
+  border: 1px solid #e6eaf0;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.toolbar-duration-input::placeholder {
+  color: #9ca3af;
+}
+
+.toolbar-duration-input:focus {
+  border-color: #fb7299;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(251, 114, 153, 0.12);
+}
+
+.toolbar-search-input::placeholder {
+  color: #9ca3af;
 }
 
 .toolbar-search-input:focus {
   border-color: #fb7299;
   outline: none;
+  box-shadow: 0 0 0 2px rgba(251, 114, 153, 0.12);
 }
 
-.trash-entry-button {
+.toolbar-entry-button {
   border: 1px solid #fbc2d3;
   border-radius: 8px;
+  min-height: 32px;
   padding: 6px 12px;
+  box-sizing: border-box;
   background: #fff;
   color: #fb7299;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.toolbar-entry-button:hover {
+  background: #fff5f8;
+}
+
+.toolbar-entry-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.toolbar-entry-button.is-active {
+  background: #fff5f8;
+  border-color: #fb7299;
+  font-weight: 600;
+}
+
+.duration-filter-wrap {
+  position: relative;
+}
+
+.duration-filter-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(210px, calc(100vw - 24px));
+  box-sizing: border-box;
+  border: 1px solid #f0d7df;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+  padding: 10px;
+  z-index: 20;
+}
+
+.duration-filter-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.duration-filter-panel-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.duration-panel-action-button {
+  border: 1px solid #fbc2d3;
+  border-radius: 8px;
+  background: #fb7299;
+  color: #fff;
+  padding: 4px 10px;
+  font-size: 12px;
   cursor: pointer;
 }
 
-.trash-entry-button:hover {
-  background: #fff5f8;
+.duration-panel-action-button.ghost {
+  background: #fff;
+  color: #fb7299;
 }
 
 .inbox-load-more-tip {
@@ -154,6 +270,7 @@ body.bewly-inbox-page {
 }
 
 .video-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   border: 1px solid #e7eaf0;
@@ -200,7 +317,7 @@ body.bewly-inbox-page {
 
 .video-title {
   color: #111827;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   line-height: 1.35;
   text-decoration: none;
@@ -231,11 +348,22 @@ body.bewly-inbox-page {
   flex: none;
 }
 
+.video-up-avatar-link {
+  display: inline-flex;
+  line-height: 0;
+}
+
 .video-up {
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #4b5563;
+  text-decoration: none;
+}
+
+.video-up:hover {
+  color: #fb7299;
 }
 
 .video-stats {
@@ -251,13 +379,36 @@ body.bewly-inbox-page {
 }
 
 .video-actions {
+  position: relative;
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  padding: 8px;
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.video-actions-buttons {
   display: flex;
   flex-direction: row;
   gap: 6px;
-  justify-content: flex-start;
+  min-width: 0;
+  max-width: calc(100% - 62px);
+}
+
+.video-want-watch-note {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  margin: 0;
+  color: #9ca3af;
+  font-size: 10px;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .action-button {
@@ -359,6 +510,22 @@ body.bewly-inbox-page {
   border-bottom: 1px solid #eceff3;
 }
 
+.trash-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trash-restore-all-button {
+  border: 1px solid #b9ecda;
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #0f766e;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
 .trash-modal-header h2 {
   margin: 0;
   font-size: 18px;
@@ -428,11 +595,28 @@ body.bewly-inbox-page {
   }
 
   .top-toolbar {
-    align-items: flex-start;
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
-  .top-toolbar-left {
-    flex-direction: column;
+  .top-toolbar-title {
+    font-size: 18px;
+  }
+
+  .top-toolbar-center {
+    width: 100%;
+  }
+
+  .toolbar-entry-button {
+    justify-self: start;
+  }
+
+  .top-toolbar-actions {
+    justify-self: start;
+    flex-wrap: wrap;
+  }
+
+  .top-toolbar-center {
     align-items: stretch;
   }
 
@@ -440,8 +624,25 @@ body.bewly-inbox-page {
     width: 100%;
   }
 
-  .video-actions {
+  .toolbar-duration-input {
     width: 100%;
+  }
+
+  .duration-filter-panel {
+    left: 0;
+    right: auto;
+  }
+
+  .video-actions-buttons {
+    max-width: none;
+    flex: 1;
+    width: 100%;
+  }
+
+  .video-want-watch-note {
+    right: 8px;
+    bottom: 8px;
+    font-size: 10px;
   }
 
   .action-button {

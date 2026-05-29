@@ -35,7 +35,19 @@ function toNumber(value: unknown, fallback = 0): number {
     return Math.max(0, Math.floor(value))
   }
   if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value)
+    const text = value.trim().toLowerCase()
+    const normalized = text.replace(/[,\s+]/g, "")
+    const unitMatch = normalized.match(/^(-?\d+(?:\.\d+)?)(万|w|亿)?$/)
+    if (unitMatch) {
+      const base = Number(unitMatch[1])
+      if (Number.isFinite(base)) {
+        const unit = unitMatch[2]
+        const multiplier = unit === "亿" ? 100000000 : unit === "万" || unit === "w" ? 10000 : 1
+        return Math.max(0, Math.floor(base * multiplier))
+      }
+    }
+
+    const parsed = Number(normalized)
     if (Number.isFinite(parsed)) {
       return Math.max(0, Math.floor(parsed))
     }
@@ -57,6 +69,40 @@ function formatDurationText(rawText: string, durationSeconds: number): string {
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}`
   }
   return `${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}`
+}
+
+function parseDurationTextToSeconds(rawText: string): number {
+  if (!rawText) {
+    return 0
+  }
+  const parts = rawText
+    .split(":")
+    .map((part) => Number(part.trim()))
+    .filter((part) => Number.isFinite(part) && part >= 0)
+  if (parts.length === 0) {
+    return 0
+  }
+  if (parts.length === 3) {
+    return Math.floor(parts[0] * 3600 + parts[1] * 60 + parts[2])
+  }
+  if (parts.length === 2) {
+    return Math.floor(parts[0] * 60 + parts[1])
+  }
+  return Math.floor(parts[0])
+}
+
+function resolveDurationSeconds(duration: unknown, durationText: string): number {
+  const fromText = parseDurationTextToSeconds(durationText)
+  if (fromText > 0) {
+    return fromText
+  }
+  if (typeof duration === "string" && duration.includes(":")) {
+    const fromDurationField = parseDurationTextToSeconds(duration)
+    if (fromDurationField > 0) {
+      return fromDurationField
+    }
+  }
+  return toNumber(duration)
 }
 
 function isVideoDynamic(item: DynamicItem): boolean {
@@ -81,7 +127,9 @@ function mapToCard(item: DynamicItem): VideoDynamicCard | null {
   const title = toText(archive.title, "未命名视频")
   const playCount = toNumber(archive.stat?.play)
   const danmakuCount = toNumber(archive.stat?.danmaku)
-  const durationText = formatDurationText(toText(archive.duration_text), toNumber(archive.duration))
+  const rawDurationText = toText(archive.duration_text)
+  const durationSeconds = resolveDurationSeconds(archive.duration, rawDurationText)
+  const durationText = formatDurationText(rawDurationText, durationSeconds)
 
   if (!dynamicId) {
     return null
@@ -94,6 +142,7 @@ function mapToCard(item: DynamicItem): VideoDynamicCard | null {
     title,
     cover: toText(archive.cover),
     durationText,
+    durationSeconds,
     playCount,
     danmakuCount,
     upMid,

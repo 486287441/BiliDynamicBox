@@ -14,6 +14,9 @@ export interface PersistedInboxState {
   dislikedDynamicIds: string[]
   trashItems: TrashItem[]
   upDislikeCounts: Record<string, number>
+  minDurationMinutes: string
+  wantWatchDynamicIds: string[]
+  hideWantWatch: boolean
 }
 
 interface PersistedEnvelope {
@@ -25,6 +28,9 @@ const EMPTY_STATE: PersistedInboxState = {
   dislikedDynamicIds: [],
   trashItems: [],
   upDislikeCounts: {},
+  minDurationMinutes: "",
+  wantWatchDynamicIds: [],
+  hideWantWatch: false,
 }
 
 function normalizeIdList(value: unknown): string[] {
@@ -55,6 +61,7 @@ function normalizeCard(value: unknown): VideoDynamicCard | null {
     title: typeof card.title === "string" ? card.title : "",
     cover: typeof card.cover === "string" ? card.cover : "",
     durationText: typeof card.durationText === "string" ? card.durationText : "",
+    durationSeconds: typeof card.durationSeconds === "number" ? Math.max(0, Math.floor(card.durationSeconds)) : 0,
     playCount: typeof card.playCount === "number" ? card.playCount : 0,
     danmakuCount: typeof card.danmakuCount === "number" ? card.danmakuCount : 0,
     upMid: card.upMid,
@@ -90,6 +97,21 @@ function normalizeTrashItems(value: unknown): TrashItem[] {
   return list
 }
 
+function normalizeMinDurationMinutes(value: unknown): string {
+  if (typeof value !== "string") {
+    return ""
+  }
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return ""
+  }
+  const numeric = Number(trimmed)
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return ""
+  }
+  return trimmed
+}
+
 function normalizeUpCounts(value: unknown): Record<string, number> {
   if (!value || typeof value !== "object") {
     return {}
@@ -118,6 +140,9 @@ function normalizeState(value: unknown): PersistedInboxState {
     dislikedDynamicIds: normalizeIdList(state.dislikedDynamicIds),
     trashItems: normalizeTrashItems(state.trashItems),
     upDislikeCounts: normalizeUpCounts(state.upDislikeCounts),
+    minDurationMinutes: normalizeMinDurationMinutes(state.minDurationMinutes),
+    wantWatchDynamicIds: normalizeIdList(state.wantWatchDynamicIds),
+    hideWantWatch: state.hideWantWatch === true,
   }
 }
 
@@ -157,8 +182,11 @@ export function readPersistedState(): PersistedInboxState {
   }
 }
 
-export function writePersistedState(state: PersistedInboxState): void {
-  const payload = normalizeState(state)
+export function writePersistedState(patch: Partial<PersistedInboxState>): void {
+  const payload = normalizeState({
+    ...readPersistedState(),
+    ...patch,
+  })
   const envelope: PersistedEnvelope = {
     version: STORAGE_VERSION,
     payload,

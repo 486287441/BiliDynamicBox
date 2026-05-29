@@ -1,8 +1,0 @@
-import './variables.scss'
-import './main.scss'
-import './adaptedStyles'
-import './transitionAndTransitionGroup.scss'
-import './blockAds.scss'
-import './removeTopBar.scss'
-import './fonts.scss'
-import './injectBuildInFonts.ts'

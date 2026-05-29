@@ -32,5 +32,8 @@ export const useTrashStore = defineStore("trash", {
     remove(dynamicId: string): void {
       this.items = this.items.filter((item) => item.dynamicId !== dynamicId)
     },
+    clearAll(): void {
+      this.items = []
+    },
   },
 })

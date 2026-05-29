@@ -7,6 +7,7 @@
         :key="item.dynamicId"
         :card="item"
         :pending-map="pendingMap"
+        :want-watch-map="wantWatchMap"
         @want-watch="$emit('want-watch', item)"
         @dislike="$emit('dislike', item)"
       />
@@ -23,6 +24,7 @@ import VideoCard from "./VideoCard.vue"
 const props = defineProps<{
   group: DateGroup
   pendingMap: Record<string, boolean>
+  wantWatchMap: Record<string, boolean>
   finalCountMap: Record<string, number>
 }>()
 

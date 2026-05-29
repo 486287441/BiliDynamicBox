@@ -14,6 +14,7 @@ export const useDecisionStore = defineStore("decision", {
   state: () => ({
     pendingMap: {} as Record<string, boolean>,
     dislikedIds: new Set(persistedState.dislikedDynamicIds),
+    wantWatchIds: new Set(persistedState.wantWatchDynamicIds),
     upDislikeCounts: { ...persistedState.upDislikeCounts } as Record<string, number>,
     promptingUpMid: "",
   }),
@@ -26,6 +27,10 @@ export const useDecisionStore = defineStore("decision", {
       this.pendingMap[card.dynamicId] = true
       try {
         await saveToWatchLater(card)
+        this.wantWatchIds.add(card.dynamicId)
+        writePersistedState({
+          wantWatchDynamicIds: [...this.wantWatchIds],
+        })
         showToast("已加入稍后再看")
       } catch (error) {
         const message = error instanceof Error ? error.message : "未知错误"
@@ -73,6 +78,19 @@ export const useDecisionStore = defineStore("decision", {
       writePersistedState({
         dislikedDynamicIds: [...this.dislikedIds],
         trashItems: trash.items,
+        upDislikeCounts: this.upDislikeCounts,
+      })
+    },
+    clearAllDisliked(): void {
+      if (this.dislikedIds.size === 0) {
+        return
+      }
+      this.dislikedIds.clear()
+      const trash = useTrashStore()
+      trash.clearAll()
+      writePersistedState({
+        dislikedDynamicIds: [],
+        trashItems: [],
         upDislikeCounts: this.upDislikeCounts,
       })
     },

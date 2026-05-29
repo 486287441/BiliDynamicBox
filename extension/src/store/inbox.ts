@@ -8,9 +8,14 @@ import { readPersistedState } from "../services/storage"
 
 const persistedState = readPersistedState()
 
+const MIN_VISIBLE_CARDS = 18
+const MAX_AUTOFILL_PAGES = 20
+const VIEWPORT_GAP_PX = 160
+
 interface InboxState {
   loading: boolean
   loadingMore: boolean
+  prefetching: boolean
   hasMore: boolean
   nextOffset: string
   error: string | null
@@ -32,6 +37,7 @@ export const useInboxStore = defineStore("inbox", {
   state: (): InboxState => ({
     loading: false,
     loadingMore: false,
+    prefetching: false,
     hasMore: true,
     nextOffset: "",
     error: null,
@@ -114,6 +120,50 @@ export const useInboxStore = defineStore("inbox", {
       this.videoTotal = visibleCards.length
       this.groups = groupByDate(visibleCards)
     },
+    countVisibleCards(): number {
+      return this.allCards.filter((card) => !this.hiddenIds.has(card.dynamicId)).length
+    },
+    needsMoreVisible(scrollRoot: HTMLElement | null, minVisible = MIN_VISIBLE_CARDS): boolean {
+      if (this.countVisibleCards() < minVisible) {
+        return true
+      }
+      if (!scrollRoot) {
+        return false
+      }
+      return scrollRoot.scrollHeight <= scrollRoot.clientHeight + VIEWPORT_GAP_PX
+    },
+    async ensureViewportFilled(scrollRoot: HTMLElement | null = null, maxPages = MAX_AUTOFILL_PAGES): Promise<void> {
+      if (!this.hasMore || this.error || this.prefetching) {
+        return
+      }
+
+      this.prefetching = true
+      try {
+        let loadedPages = 0
+        while (this.hasMore && loadedPages < maxPages) {
+          if (!this.needsMoreVisible(scrollRoot)) {
+            break
+          }
+          await this.load(false)
+          loadedPages += 1
+          if (this.error) {
+            break
+          }
+        }
+      } finally {
+        this.prefetching = false
+      }
+    },
+    async bootstrap(scrollRoot: HTMLElement | null = null): Promise<void> {
+      await this.load(true)
+      await this.ensureViewportFilled(scrollRoot)
+    },
+    async refresh(scrollRoot: HTMLElement | null = null): Promise<void> {
+      await this.bootstrap(scrollRoot)
+    },
+    async fillAfterHide(scrollRoot: HTMLElement | null = null): Promise<void> {
+      await this.ensureViewportFilled(scrollRoot, 10)
+    },
     removeCard(dynamicId: string) {
       if (!dynamicId) {
         return
@@ -133,6 +183,13 @@ export const useInboxStore = defineStore("inbox", {
         return
       }
       this.hiddenIds.delete(dynamicId)
+      this.rebuildGroups()
+    },
+    restoreAllHidden(): void {
+      if (this.hiddenIds.size === 0) {
+        return
+      }
+      this.hiddenIds.clear()
       this.rebuildGroups()
     },
     async load(reset = true) {

@@ -10,8 +10,19 @@
         {{ card.title }}
       </a>
       <div class="video-subtitle">
-        <img v-if="card.upAvatar" class="video-up-avatar" :src="avatarUrl" :alt="card.upName" loading="lazy" />
-        <span class="video-up">{{ card.upName }}</span>
+        <a
+          v-if="card.upAvatar"
+          class="video-up-avatar-link"
+          :href="upSpaceUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          :title="`打开 ${card.upName} 的个人空间`"
+        >
+          <img class="video-up-avatar" :src="avatarUrl" :alt="card.upName" loading="lazy" />
+        </a>
+        <a class="video-up" :href="upSpaceUrl" target="_blank" rel="noopener noreferrer" :title="`打开 ${card.upName} 的个人空间`">
+          {{ card.upName }}
+        </a>
       </div>
       <div class="video-stats">
         <span>{{ playCountLabel }} 播放</span>
@@ -23,17 +34,20 @@
     </div>
 
     <div class="video-actions">
-      <button
-        class="action-button action-button-primary"
-        type="button"
-        :disabled="isPending"
-        @click="$emit('want-watch')"
-      >
-        {{ isPending ? "处理中..." : "想看" }}
-      </button>
-      <button class="action-button action-button-ghost" type="button" :disabled="isPending" @click="$emit('dislike')">
-        不想看
-      </button>
+      <div class="video-actions-buttons">
+        <button
+          class="action-button action-button-primary"
+          type="button"
+          :disabled="isPending"
+          @click="$emit('want-watch')"
+        >
+          {{ isPending ? "处理中..." : "想看" }}
+        </button>
+        <button class="action-button action-button-ghost" type="button" :disabled="isPending" @click="$emit('dislike')">
+          不想看
+        </button>
+      </div>
+      <span v-if="isWantWatched" class="video-want-watch-note">已点击想看</span>
     </div>
   </article>
 </template>
@@ -46,6 +60,7 @@ import type { VideoDynamicCard } from "../domain/types"
 const props = defineProps<{
   card: VideoDynamicCard
   pendingMap: Record<string, boolean>
+  wantWatchMap: Record<string, boolean>
 }>()
 
 defineEmits<{
@@ -71,6 +86,13 @@ const videoUrl = computed(() => {
   return "https://www.bilibili.com/"
 })
 
+const upSpaceUrl = computed(() => {
+  if (props.card.upMid) {
+    return `https://space.bilibili.com/${props.card.upMid}`
+  }
+  return "https://space.bilibili.com/"
+})
+
 const publishLabel = computed(() => {
   const value = props.card.publishAt
   const date = new Date(value * 1000)
@@ -82,6 +104,7 @@ const publishLabel = computed(() => {
 })
 
 const isPending = computed(() => Boolean(props.pendingMap[props.card.dynamicId]))
+const isWantWatched = computed(() => Boolean(props.wantWatchMap[props.card.dynamicId]))
 
 function formatCount(value: number): string {
   if (!Number.isFinite(value) || value <= 0) {

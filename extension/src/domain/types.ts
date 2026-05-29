@@ -37,6 +37,7 @@ export interface VideoDynamicCard {
   title: string
   cover: string
   durationText: string
+  durationSeconds: number
   playCount: number
   danmakuCount: number
   upMid: string

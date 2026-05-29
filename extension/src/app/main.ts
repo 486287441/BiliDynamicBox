@@ -2,6 +2,7 @@ import { createApp, type App as VueApp } from "vue"
 import { createPinia } from "pinia"
 
 import App from "./App.vue"
+import "../styles/fonts.scss"
 import "../styles/base.scss"
 
 const appInstances = new WeakMap<HTMLElement, VueApp>()

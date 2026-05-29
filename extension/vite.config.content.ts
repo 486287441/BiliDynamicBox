@@ -3,6 +3,7 @@ import vue from "@vitejs/plugin-vue"
 import path from "node:path"
 
 export default defineConfig({
+  base: "./",
   plugins: [vue()],
   resolve: {
     alias: {
@@ -28,6 +29,9 @@ export default defineConfig({
           const name = assetInfo.name ?? ""
           if (name.endsWith(".css")) {
             return "content/style.css"
+          }
+          if (/\.(woff2?|ttf|otf)$/i.test(name)) {
+            return "assets/fonts/[name][extname]"
           }
           return "assets/[name]-[hash][extname]"
         },

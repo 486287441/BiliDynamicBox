@@ -3,7 +3,17 @@
     <section class="trash-modal-panel">
       <header class="trash-modal-header">
         <h2>垃圾箱</h2>
-        <button class="trash-close-button" type="button" @click="$emit('close')">关闭</button>
+        <div class="trash-header-actions">
+          <button
+            v-if="items.length > 0"
+            class="trash-restore-all-button"
+            type="button"
+            @click="$emit('restore-all')"
+          >
+            全部恢复
+          </button>
+          <button class="trash-close-button" type="button" @click="$emit('close')">关闭</button>
+        </div>
       </header>
 
       <p v-if="items.length === 0" class="trash-empty-tip">暂无记录</p>
@@ -33,6 +43,7 @@ defineProps<{
 defineEmits<{
   (event: "close"): void
   (event: "restore", dynamicId: string): void
+  (event: "restore-all"): void
 }>()
 
 function formatRemovedAt(timestamp: number): string {
