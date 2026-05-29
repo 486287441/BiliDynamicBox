@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<!-- ==================================================================
+     LONG DOCUMENT TEMPLATE · parchment design system
+     多页 A4 白皮书/技术报告/年度总结
+     结构：封面 -> 目录 -> 执行摘要 -> 正文章节 -> 附录
+     ================================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>BiliDynamicBox 产品与技术白皮书</title>
+<meta name="author" content="BiliDynamicBox">
+<meta name="description" content="B 站动态收件箱扩展的产品背景、功能范围、交互原则、技术架构与数据流说明。">
+<meta name="keywords" content="BiliDynamicBox,B站动态,Chrome扩展,白皮书,技术方案">
+<meta name="generator" content="Kami">
+<style>
+    /* BEGIN KAMI-FONTS */
+  /* Kami CN print templates · copy into <style> (keep in sync via scripts/sync-cn-font-blocks.py)
+     Paths: ../fonts/ (repo build) · fonts/ (standalone export) · jsDelivr CDN
+     Latin → Charter/Georgia · CJK → 仓耳今楷 · code → JetBrains Mono */
+  @font-face {
+    font-family: "KamiLatin";
+    src: local("Charter"),
+       local("Charter Regular"),
+       local("Georgia"),
+       local("Palatino Linotype"),
+       local("Times New Roman");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+                   U+2000-206F, U+2070-2079, U+2080-2089, U+20AC, U+2122, U+2190-2193, U+2212;
+  }
+
+  @font-face {
+    font-family: "KamiLatin";
+    src: local("Charter Bold"),
+       local("Charter"),
+       local("Georgia Bold"),
+       local("Georgia");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+                   U+2000-206F, U+2070-2079, U+2080-2089, U+20AC, U+2122, U+2190-2193, U+2212;
+  }
+
+  @font-face {
+    font-family: "KamiSerif";
+    src: local("仓耳今楷02 W04"),
+       local("TsangerJinKai02"),
+       url("../fonts/TsangerJinKai02-W04.ttf") format("truetype"),
+       url("fonts/TsangerJinKai02-W04.ttf") format("truetype"),
+       url("https://cdn.jsdelivr.net/gh/tw93/Kami@main/assets/fonts/TsangerJinKai02-W04.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
+  }
+
+  @font-face {
+    font-family: "KamiSerif";
+    src: local("仓耳今楷02 W05"),
+       local("TsangerJinKai02"),
+       url("../fonts/TsangerJinKai02-W05.ttf") format("truetype"),
+       url("fonts/TsangerJinKai02-W05.ttf") format("truetype"),
+       url("https://cdn.jsdelivr.net/gh/tw93/Kami@main/assets/fonts/TsangerJinKai02-W05.ttf") format("truetype");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
+  }
+
+  @font-face {
+    font-family: "KamiMono";
+    src: local("JetBrains Mono"),
+       local("JetBrains Mono Regular"),
+       local("Consolas"),
+       local("Cascadia Mono"),
+       url("../fonts/JetBrainsMono.woff2") format("woff2"),
+       url("fonts/JetBrainsMono.woff2") format("woff2"),
+       url("https://cdn.jsdelivr.net/gh/tw93/Kami@main/assets/fonts/JetBrainsMono.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "KamiMono";
+    src: local("JetBrains Mono Medium"),
+       local("JetBrains Mono"),
+       local("Consolas"),
+       url("../fonts/JetBrainsMono.woff2") format("woff2"),
+       url("fonts/JetBrainsMono.woff2") format("woff2"),
+       url("https://cdn.jsdelivr.net/gh/tw93/Kami@main/assets/fonts/JetBrainsMono.woff2") format("woff2");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+/* END KAMI-FONTS */
+
+
+
+
+
+@page {
+    size: A4;
+    margin: 20mm 22mm 22mm 22mm;
+    background: #f5f4ed;
+
+    @top-right {
+      content: string(section-title);
+      font-family: var(--serif);
+      font-size: 8pt;
+      color: #6b6a64;
+    }
+
+    @bottom-center {
+      content: counter(page) "  ·  BiliDynamicBox 白皮书";
+      font-family: var(--serif);
+      font-size: 9pt;
+      color: #6b6a64;
+    }
+  }
+
+  @page:first {
+    @top-right { content: ""; }
+    @bottom-center { content: ""; }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --parchment: #f5f4ed;
+    --ivory:     #faf9f5;
+    --near-black:#141413;
+    --dark-warm: #3d3d3a;
+    --olive:     #504e49;
+    --stone:     #6b6a64;
+    --brand:     #1B365D;
+    --border:    #e8e6dc;
+    --border-soft:#e5e3d8;
+    --tag-bg:    #E4ECF5;
+    --serif: "KamiLatin", "KamiSerif", Charter, "仓耳今楷02 W04", "TsangerJinKai02",
+             "Source Han Serif SC", "Noto Serif CJK SC", Georgia, "Songti SC", serif;
+    --sans: var(--serif);
+        --mono: "KamiMono", "JetBrains Mono", Consolas, "Cascadia Mono", "SF Mono", "Fira Code", monospace;
+
+    --rhythm-module:  14pt;
+    --rhythm-section: 18pt;
+  }
+
+  html, body { background: var(--parchment); }
+
+  @media screen {
+    body { max-width: 210mm; margin: 0 auto; padding: 20mm 22mm 22mm 22mm; }
+  }
+
+  body {
+    color: var(--near-black);
+    font-family: var(--serif);
+    font-size: 10.5pt;
+    line-height: 1.55;
+    letter-spacing: 0.3pt;
+    widows: 3;
+    orphans: 3;
+  }
+
+  .sans {
+    font-family: var(--sans);
+  }
+
+  /* ========== COVER ========== */
+  .cover {
+    min-height: 240mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 40mm 0 0 0;
+    break-after: page;
+  }
+  .cover-eyebrow {
+    font-family: var(--sans);
+    font-size: 10pt;
+    color: var(--brand);
+    letter-spacing: 1pt;
+    text-transform: uppercase;
+    margin-bottom: 18pt;
+  }
+  .cover-title {
+    font-size: 36pt;
+    font-weight: 500;
+    color: var(--near-black);
+    line-height: 1.15;
+    letter-spacing: 0.3pt;
+    margin-bottom: 16pt;
+  }
+  .cover-sub {
+    font-family: var(--sans);
+    font-size: 14pt;
+    color: var(--olive);
+    line-height: 1.5;
+    max-width: 85%;
+    margin-bottom: 30pt;
+  }
+  .cover-meta {
+    font-family: var(--sans);
+    font-size: 10pt;
+    color: var(--stone);
+    line-height: 1.5;
+  }
+  .cover-meta strong {
+    color: var(--dark-warm);
+    font-weight: 500;
+  }
+
+  /* ========== TOC（目录）========== */
+  .toc { break-after: page; }
+  .toc h2 {
+    font-size: 22pt;
+    font-weight: 500;
+    margin-bottom: var(--rhythm-module);
+    border-left: 2.5pt solid var(--brand);
+    border-radius: 1.5pt;
+    padding-left: 8pt;
+  }
+  .toc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6pt 0;
+    border-bottom: 0.3pt dotted var(--border);
+    font-size: 11pt;
+  }
+  .toc-item:last-of-type { border-bottom: none; }
+  .toc-num {
+    color: var(--brand);
+    font-weight: 500;
+    min-width: 30pt;
+  }
+  .toc-title {
+    flex: 1;
+    color: var(--near-black);
+    padding-left: 6pt;
+  }
+  .toc-page {
+    color: var(--stone);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ========== HEADINGS ========== */
+  h1 {
+    font-size: 22pt;
+    font-weight: 500;
+    line-height: 1.2;
+    margin: 0 0 10pt 0;
+    border-left: 2.5pt solid var(--brand);
+    border-radius: 1.5pt;
+    padding-left: 8pt;
+    color: var(--near-black);
+    break-after: avoid;
+  }
+
+  h2 {
+    font-size: 16pt;
+    font-weight: 500;
+    line-height: 1.25;
+    margin: 24pt 0 8pt 0;
+    color: var(--near-black);
+    break-after: avoid;
+    string-set: section-title content();
+  }
+
+  h3 {
+    font-size: 13pt;
+    font-weight: 500;
+    line-height: 1.3;
+    margin: 18pt 0 6pt 0;
+    color: var(--dark-warm);
+    break-after: avoid;
+  }
+
+  .chapter-num {
+    font-family: var(--sans);
+    font-size: 10pt;
+    color: var(--brand);
+    letter-spacing: 1pt;
+    text-transform: uppercase;
+    margin-bottom: 6pt;
+  }
+
+  /* ========== PARAGRAPHS ========== */
+  p {
+    margin: 0 0 10pt 0;
+    line-height: 1.55;
+    color: var(--near-black);
+    widows: 2;
+    orphans: 2;
+  }
+
+  .lead {
+    font-size: 12pt;
+    line-height: 1.55;
+    color: var(--dark-warm);
+    margin-bottom: var(--rhythm-module);
+  }
+
+  .hl { color: var(--brand); font-weight: 500; }
+  strong { font-weight: 500; }
+
+  /* ========== LISTS ========== */
+  ul, ol {
+    margin: 6pt 0 10pt 0;
+    padding-left: 20pt;
+    line-height: 1.55;
+  }
+  ul li::marker { color: var(--brand); }
+  ol li::marker { color: var(--brand); font-weight: 500; }
+
+  /* ========== QUOTE ========== */
+  blockquote, .quote {
+    border-left: 2pt solid var(--brand);
+    margin: 12pt 0;
+    padding: 4pt 0 4pt 16pt;
+    color: var(--olive);
+    line-height: 1.55;
+    break-inside: avoid;
+  }
+  blockquote .cite, .quote .cite {
+    display: block;
+    font-size: 9pt;
+    color: var(--stone);
+    margin-top: 4pt;
+  }
+
+  /* BEGIN KAMI-CODE */
+  code {
+    font-family: var(--mono), var(--serif), monospace;
+    font-size: 9pt;
+    background: var(--ivory);
+    padding: 1pt 4pt;
+    border-radius: 2pt;
+    color: var(--dark-warm);
+    font-variant-ligatures: none;
+  }
+  pre {
+    font-family: var(--mono), var(--serif), monospace;
+    font-size: 9pt;
+    line-height: 1.5;
+    background: var(--ivory);
+    border-radius: 4pt;
+    padding: 10pt 14pt;
+    margin: 10pt 0;
+    white-space: pre-wrap;
+    color: var(--near-black);
+    break-inside: avoid;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+    font-size: inherit;
+  }
+  /* END KAMI-CODE */
+
+/* ========== TABLE (kami-table) ========== */
+  table, .kami-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    margin: 12pt 0;
+    break-inside: avoid;
+  }
+  table th, .kami-table th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--dark-warm);
+    padding: 6pt 8pt;
+    border-bottom: 1pt solid var(--border);
+    background: transparent;
+  }
+  table td, .kami-table td {
+    padding: 5pt 8pt;
+    border-bottom: 0.3pt solid var(--border-soft);
+    vertical-align: top;
+  }
+  table.compact th, .kami-table.compact th { padding: 3pt 6pt; font-size: 8pt; }
+  table.compact td, .kami-table.compact td { padding: 2pt 6pt; font-size: 8pt; line-height: 1.4; }
+  table.financial td:not(:first-child), .kami-table.financial td:not(:first-child) {
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+  table.financial th:not(:first-child), .kami-table.financial th:not(:first-child) { text-align: right; }
+  table.striped tbody tr:nth-child(even) td, .kami-table.striped tbody tr:nth-child(even) td {
+    background: var(--ivory);
+  }
+  table .total td, .kami-table .total td {
+    font-weight: 500; border-top: 1pt solid var(--brand); border-bottom: none; color: var(--near-black);
+  }
+
+  /* ========== CALLOUT ========== */
+  .callout {
+    background: var(--ivory);
+    border-left: 2pt solid var(--brand);
+    padding: 10pt 14pt;
+    border-radius: 3pt;
+    margin: 12pt 0;
+    line-height: 1.55;
+    break-inside: avoid;
+  }
+  .callout blockquote,
+  .callout .quote {
+    border-left: none;
+    padding-left: 0;
+    margin: 6pt 0;
+    color: var(--olive);
+  }
+  .callout blockquote:first-child,
+  .callout .quote:first-child { margin-top: 0; }
+  .callout blockquote:last-child,
+  .callout .quote:last-child  { margin-bottom: 0; }
+
+  .takeaway {
+    background: var(--ivory);
+    border-radius: 4pt;
+    padding: 10pt 14pt;
+    margin: 14pt 0;
+    break-inside: avoid;
+  }
+  .takeaway-label {
+    font-family: var(--sans);
+    font-size: 9pt;
+    color: var(--brand);
+    letter-spacing: 0.5pt;
+    text-transform: uppercase;
+    margin-bottom: 4pt;
+  }
+
+  /* ========== TAG ========== */
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--brand);
+    font-family: var(--sans);
+    font-size: 9pt;
+    font-weight: 500;
+    padding: 1pt 6pt;
+    border-radius: 3pt;
+    margin-right: 4pt;
+  }
+
+  /* ========== FIGURE ========== */
+  figure {
+    margin: 14pt 0;
+    break-inside: avoid;
+  }
+  figure img {
+    max-width: 100%;
+    border-radius: 4pt;
+  }
+  figcaption {
+    font-family: var(--sans);
+    font-size: 9pt;
+    color: var(--stone);
+    margin-top: 6pt;
+    text-align: center;
+  }
+
+  /* ========== EXECUTIVE SUMMARY ========== */
+  .exec-summary {
+    background: var(--ivory);
+    border-left: 1.4pt solid var(--brand);
+    border-radius: 6pt;
+    padding: 16pt 20pt;
+    margin: 14pt 0;
+    break-inside: avoid;
+  }
+  .exec-summary h2 {
+    margin-top: 0;
+    font-size: 13pt;
+  }
+
+  /* ========== CHAPTER BREAK ========== */
+  .chapter { break-before: page; }
+</style>
+</head>
+<body>
+
+<!-- ═════════════ COVER ═════════════ -->
+<section class="cover">
+  <div>
+    <div class="cover-eyebrow">产品与技术白皮书</div>
+    <div class="cover-title">BiliDynamicBox<br>动态收件箱扩展</div>
+    <div class="cover-sub">面向产品、研发与贡献者：阐明问题、范围、体验决策与 Manifest V3 实现路线</div>
+  </div>
+  <div class="cover-meta">
+    <strong>BiliDynamicBox</strong><br>
+    V1.0  ·  2026.05<br>
+    github.com/486287441/BiliDynamicBox
+  </div>
+</section>
+
+<!-- ═════════════ 目录 ═════════════ -->
+<section class="toc">
+  <h2>目录</h2>
+  <div class="toc-item">
+    <span class="toc-num">01</span>
+    <span class="toc-title">执行摘要</span>
+    <span class="toc-page">03</span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">02</span>
+    <span class="toc-title">背景与问题定义</span>
+    <span class="toc-page">04</span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">03</span>
+    <span class="toc-title">方法与发现</span>
+    <span class="toc-page">06</span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">04</span>
+    <span class="toc-title">结论与建议</span>
+    <span class="toc-page">09</span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">05</span>
+    <span class="toc-title">附录</span>
+    <span class="toc-page">11</span>
+  </div>
+</section>
+
+<!-- ═════════════ Chapter 01：执行摘要 ═════════════ -->
+<section class="chapter">
+  <div class="chapter-num">01 · Executive Summary</div>
+  <h1>执行摘要</h1>
+
+  <p class="lead">
+    BiliDynamicBox 在 <span class="hl">https://t.bilibili.com/</span> 将原生动态内容区替换为视频收件箱：按今天、昨天与更早日期分组，用户以「想看 / 不想看」完成决策。数据仅存本地浏览器，不依赖自建后端。
+  </p>
+
+  <h2>核心 Takeaways</h2>
+  <ul>
+    <li>产品目标：降低动态页噪音，把浏览转为可执行的观看清单与过滤规则。</li>
+    <li>范围边界：仅视频动态；图文与纯文字不进入卡片流；仅动态页生效。</li>
+    <li>技术路径：MV3 Content Script + Vue 3 + Pinia + chrome.storage.local。</li>
+  </ul>
+
+  <div class="takeaway">
+    <div class="takeaway-label">本文档回答的问题</div>
+    为什么要做收件箱？用户能做什么、不能做什么？工程上如何注入、过滤、持久化与调用 B 站接口？
+  </div>
+</section>
+
+<!-- ═════════════ Chapter 02：背景 ═════════════ -->
+<section class="chapter">
+  <div class="chapter-num">02 · Background</div>
+  <h1>背景与问题定义</h1>
+
+  <p class="lead">
+    B 站动态页聚合了关注 UP 的多种更新类型。对以视频消费为主的用户，混排时间线意味着更高的扫读成本与更慢的决策速度。
+  </p>
+
+  <h2>当前现状</h2>
+  <p>原生动态流按时间混排视频、图片与文字。用户若只想处理「今晚要不要看」，需要在无关内容上反复滚动。稍后再看与屏蔽能力分散在单条操作菜单中，缺少「收件箱式」的批量处理心智。</p>
+
+  <h2>核心问题</h2>
+  <p>信息噪音高、决策成本高：用户希望在同一页面快速划分「想看」与「不想看」，并可持续地维护过滤结果。</p>
+
+  <div class="callout">
+    产品首要目标（已定）：quick_filter —— 优先快速筛掉不感兴趣动态，而非推荐算法或社交运营能力。
+  </div>
+
+  <h2>衡量标准</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>维度</th>
+        <th>当前（原生）</th>
+        <th>目标（扩展）</th>
+        <th>差距</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>内容类型</td>
+        <td>视频 + 图文 + 文字混排</td>
+        <td>仅视频卡片</td>
+        <td>需过滤层</td>
+      </tr>
+      <tr>
+        <td>时间结构</td>
+        <td>连续时间线</td>
+        <td>今天 / 昨天 / 日期</td>
+        <td>需分组逻辑</td>
+      </tr>
+      <tr>
+        <td>负反馈</td>
+        <td>单条隐藏分散</td>
+        <td>垃圾箱 + 刷新不现</td>
+        <td>需本地持久化</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════════ Chapter 03：方法 ═════════════ -->
+<section class="chapter">
+  <div class="chapter-num">03 · Product &amp; Architecture</div>
+  <h1>功能范围与技术架构</h1>
+
+  <p class="lead">本章对齐已定 PRD 与 plan/技术方案.md：先列用户可见能力，再说明扩展如何挂载与持久化。</p>
+
+  <h2>功能范围（已定）</h2>
+  <ul>
+    <li>核心流程：在动态页对视频卡片执行「想看 / 不想看」。</li>
+    <li>分组：today_yesterday_then_date —— 今天、昨天、更早按具体日期。</li>
+    <li>不想看：hide_only_this_post，仅隐藏当前动态。</li>
+    <li>垃圾箱：top_toolbar 入口；误操作可恢复。</li>
+    <li>取关：同一 UP 连续 5 次不想看 → immediate_modal 确认。</li>
+    <li>想看反馈：toast_only，不打断浏览。</li>
+  </ul>
+
+  <h2>技术选型</h2>
+  <p>Chrome/Edge Manifest V3；Vue 3 + TypeScript + Pinia；Vite + tsup 双构建；webextension-polyfill；存储 chrome.storage.local。</p>
+
+  <pre><code class="language-text">extension/src/
+  content/     → 注入、页面替换、挂载 #bewly-inbox-root
+  domain/      → filter-video, group-by-date, decision-rules
+  store/       → inbox, decision, trash
+  services/    → bilibili-api, storage, toast
+  components/  → VideoCard, InboxGroup, TopToolbar, TrashModal</code></pre>
+
+  <h2>数据流要点</h2>
+
+  <h3>发现 1：鉴权不引入密钥</h3>
+  <p>扩展通过页面同源请求调用 B 站公开接口，<span class="hl">credentials: "include"</span> 使用浏览器已有登录 Cookie，仓库内不含 API Key。</p>
+
+  <h3>发现 2：过滤在领域层完成</h3>
+  <p>filter-video.ts 统一剔除非视频动态；Vue 层只渲染 VideoDynamicCard，避免 UI 与规则分叉。</p>
+
+  <blockquote>
+    UI 视觉参考 BewlyBewly 卡片扫读体验；实现为本仓库独立代码，上游工程需本地单独克隆对照。
+    <span class="cite"> — README，2026</span>
+  </blockquote>
+</section>
+
+<!-- ═════════════ Chapter 04：结论 ═════════════ -->
+<section class="chapter">
+  <div class="chapter-num">04 · Conclusions</div>
+  <h1>结论与建议</h1>
+
+  <p class="lead">BiliDynamicBox 用最小页面侵入换取清晰的决策界面；成功取决于规则一致、本地可信与轻量反馈。</p>
+
+  <h2>核心结论</h2>
+  <ol>
+    <li>产品价值在于把动态页从「信息流」改为「待办收件箱」，而非改造全站。</li>
+    <li>技术栈与 Bewly 对齐，利于复用工程经验；边界由 domain 层约束。</li>
+    <li>隐私模型简单：不收集个人信息，负反馈数据仅 chrome.storage.local。</li>
+  </ol>
+
+  <h2>明确不做</h2>
+  <p>不改造首页 / 搜索；不含推荐算法、批量运营、社区协作；不要求键盘快捷键（当前以点击为主）。</p>
+
+  <h2>下一步建议</h2>
+  <p>贡献者可按 plan/M01–M05 模块推进；使用者 clone 后在 extension/ 执行 npm ci && npm run build，开发者模式加载 extension 目录。</p>
+
+  <div class="takeaway">
+    <div class="takeaway-label">Call to Action</div>
+    登录 B 站 → 加载扩展 → 打开 t.bilibili.com → 用今天分组处理一轮更新，验证想看、不想看、垃圾箱与第 5 次取关弹窗。
+  </div>
+</section>
+
+<!-- ═════════════ Chapter 05：附录 ═════════════ -->
+<section class="chapter">
+  <div class="chapter-num">05 · Appendix</div>
+  <h1>附录</h1>
+
+  <h2>A. 参考资料</h2>
+  <ul>
+    <li>需求.md — 产品需求 PRD</li>
+    <li>plan/技术方案.md — 技术选型与数据流</li>
+    <li>privacy-policy.md — 隐私政策</li>
+    <li>https://github.com/hakadao/BewlyBewly — UI 参考</li>
+  </ul>
+
+  <h2>B. 术语表</h2>
+  <p><strong>想看</strong>：将当前视频动态加入 B 站稍后再看列表。</p>
+  <p><strong>不想看</strong>：移入本地垃圾箱，刷新后该 dynamicId 不再展示。</p>
+  <p><strong>取关阈值</strong>：同一 upMid 累计 5 次不想看后弹窗确认是否取关。</p>
+
+  <h2>C. 致谢</h2>
+  <p>感谢 BewlyBewly 项目在卡片扫读与工程组织上的参考；字体授权见 extension/assets/fonts/ 下各 LICENSE 文件。</p>
+</section>
+
+</body>
+</html>

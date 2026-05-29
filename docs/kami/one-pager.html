@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<!-- ==================================================================
+     ONE-PAGER TEMPLATE · parchment design system
+     单页 A4 方案/报告/执行摘要
+     改完跑：python3 -c "from weasyprint import HTML; HTML('one-pager.html').write_pdf('out.pdf')"
+     目标：页数必须 == 1
+     ================================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>BiliDynamicBox 执行摘要</title>
+<meta name="author" content="BiliDynamicBox">
+<meta name="description" content="B 站动态页视频收件箱扩展：按日分组、想看稍后再看、不想看垃圾箱、连续阈值取关确认。">
+<meta name="keywords" content="BiliDynamicBox,B站,动态,Chrome扩展,收件箱,稍后再看">
+<meta name="generator" content="Kami">
+<style>
+    /* BEGIN KAMI-FONTS */
+  /* Kami CN print templates · copy into <style> (keep in sync via scripts/sync-cn-font-blocks.py)
+     Paths: ../fonts/ (repo build) · fonts/ (standalone export) · jsDelivr CDN
+     Latin → Charter/Georgia · CJK → 仓耳今楷 · code → JetBrains Mono */
+  @font-face {
+    font-family: "KamiLatin";
+    src: local("Charter"),
+       local("Charter Regular"),
+       local("Georgia"),
+       local("Palatino Linotype"),
+       local("Times New Roman");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+                   U+2000-206F, U+2070-2079, U+2080-2089, U+20AC, U+2122, U+2190-2193, U+2212;
+  }
+
+  @font-face {
+    font-family: "KamiLatin";
+    src: local("Charter Bold"),
+       local("Charter"),
+       local("Georgia Bold"),
+       local("Georgia");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+                   U+2000-206F, U+2070-2079, U+2080-2089, U+20AC, U+2122, U+2190-2193, U+2212;
+  }
+
+  @font-face {
+    font-family: "KamiSerif";
+    src: local("仓耳今楷02 W04"),
+       local("TsangerJinKai02"),
+       url("../fonts/TsangerJinKai02-W04.ttf") format("truetype"),
+       url("fonts/TsangerJinKai02-W04.ttf") format("truetype"),
+       url("https://cdn.jsdelivr.net/gh/tw93/Kami@main/assets/fonts/TsangerJinKai02-W04.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
+  }
+
+  @font-face {
+    font-family: "KamiSerif";
+    src: local("仓耳今楷02 W05"),
+       local("TsangerJinKai02"),
+       url("../fonts/TsangerJinKai02-W05.ttf") format("truetype"),
+       url("fonts/TsangerJinKai02-W05.ttf") format("truetype"),
+       url("https://cdn.jsdelivr.net/gh/tw93/Kami@main/assets/fonts/TsangerJinKai02-W05.ttf") format("truetype");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
+  }
+
+  @font-face {
+    font-family: "KamiMono";
+    src: local("JetBrains Mono"),
+       local("JetBrains Mono Regular"),
+       local("Consolas"),
+       local("Cascadia Mono"),
+       url("../fonts/JetBrainsMono.woff2") format("woff2"),
+       url("fonts/JetBrainsMono.woff2") format("woff2"),
+       url("https://cdn.jsdelivr.net/gh/tw93/Kami@main/assets/fonts/JetBrainsMono.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "KamiMono";
+    src: local("JetBrains Mono Medium"),
+       local("JetBrains Mono"),
+       local("Consolas"),
+       url("../fonts/JetBrainsMono.woff2") format("woff2"),
+       url("fonts/JetBrainsMono.woff2") format("woff2"),
+       url("https://cdn.jsdelivr.net/gh/tw93/Kami@main/assets/fonts/JetBrainsMono.woff2") format("woff2");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+/* END KAMI-FONTS */
+
+
+
+
+
+@page {
+    size: A4;
+    margin: 15mm 18mm 15mm 18mm;
+    background: #f5f4ed;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --parchment: #f5f4ed;
+    --ivory:     #faf9f5;
+    --sand:      #e8e6dc;
+    --near-black:#141413;
+    --dark-warm: #3d3d3a;
+    --olive:     #504e49;
+    --stone:     #6b6a64;
+    --brand:     #1B365D;
+    --border:    #e8e6dc;
+    --border-soft:#e5e3d8;
+    --tag-bg:    #E4ECF5;
+    --serif: "KamiLatin", "KamiSerif", Charter, "仓耳今楷02 W04", "TsangerJinKai02",
+             "Source Han Serif SC", "Noto Serif CJK SC", Georgia, "Songti SC", serif;
+    --sans: var(--serif);
+    --mono: "KamiMono", "JetBrains Mono", Consolas, "Cascadia Mono", "SF Mono", "Fira Code", monospace;
+  }
+
+  html, body { background: var(--parchment); }
+
+  @media screen {
+    body { max-width: 210mm; margin: 0 auto; padding: 15mm 18mm; }
+  }
+
+  body {
+    color: var(--near-black);
+    font-family: var(--serif);
+    font-size: 10pt;
+    line-height: 1.45;
+    letter-spacing: 0.3pt;
+  }
+
+  .serif {
+    font-family: var(--serif);
+  }
+
+  /* ========== HEADER ========== */
+  .header {
+    border-left: 2.5pt solid var(--brand);
+    border-radius: 1.5pt;
+    padding-left: 8pt;
+    margin-bottom: 14pt;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20pt;
+  }
+  .title-block {
+    flex: 1;
+  }
+  .eyebrow {
+    font-size: 9pt;
+    color: var(--brand);
+    letter-spacing: 1pt;
+    text-transform: uppercase;
+    margin-bottom: 4pt;
+  }
+  /* CN locale tuning: TsangerJinKai glyphs are wider per character, so H1 sits
+     slightly smaller (24pt vs EN 26pt) with looser leading (1.15 vs EN 1.12)
+     to keep optical density aligned across the two locales. */
+  h1 {
+    font-family: var(--serif);
+    font-size: 24pt;
+    font-weight: 500;
+    color: var(--near-black);
+    line-height: 1.15;
+    margin-bottom: 5pt;
+  }
+  .subtitle {
+    font-size: 11pt;
+    color: var(--olive);
+    line-height: 1.4;
+  }
+  .meta {
+    font-size: 9pt;
+    color: var(--stone);
+    text-align: right;
+    line-height: 1.45;
+    white-space: nowrap;
+  }
+  /* 品牌 logo 槽(可选,来自 brand profile;默认无 logo,样式仅在取消注释后生效)。 */
+  .brand-logo {
+    height: 44px;
+    width: auto;
+    max-width: 160px;
+    object-fit: contain;
+    align-self: flex-start;
+  }
+
+  /* ========== METRICS ========== */
+  /* 横向 baseline 布局 - -  和 resume.html 一致的 kami native 姿态。
+     背景透明、无边框，用 typography 本身承担层次，不加容器。 */
+  .metrics {
+    display: flex;
+    gap: 14pt;
+    margin-bottom: 18pt;
+    padding: 4pt 0 6pt 0;
+    border-bottom: 0.3pt dotted var(--border);
+  }
+  .metric {
+    flex: 1;
+    background: transparent;
+    padding: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 4pt;
+    break-inside: avoid;
+  }
+  .metric-value {
+    font-family: var(--serif);
+    font-size: 20pt;
+    font-weight: 500;
+    color: var(--brand);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    letter-spacing: -0.2pt;
+  }
+  .metric-label {
+    font-size: 9pt;
+    color: var(--olive);
+    line-height: 1.3;
+  }
+
+  /* ========== SECTIONS ========== */
+  section { margin-bottom: 18pt; break-inside: avoid; }
+  section:last-of-type { margin-bottom: 0; }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 16pt;
+    font-weight: 500;
+    color: var(--near-black);
+    margin-bottom: 6pt;
+  }
+  h2 .sub {
+    font-size: 9pt;
+    color: var(--stone);
+    font-weight: 400;
+    margin-left: 6pt;
+  }
+
+  p { margin-bottom: 6pt; line-height: 1.45; }
+  p:last-child { margin-bottom: 0; }
+
+  .lead {
+    font-size: 12pt;
+    line-height: 1.5;
+    color: var(--dark-warm);
+    margin-bottom: 14pt;
+  }
+
+  .hl { color: var(--brand); font-weight: 500; }
+
+  /* ========== 2-column grid ========== */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18pt;
+  }
+
+  /* ========== 短横线 list（代替默认 bullet） ========== */
+  ul.dash {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  ul.dash li {
+    position: relative;
+    padding-left: 14pt;
+    margin-bottom: 4pt;
+    line-height: 1.45;
+  }
+  ul.dash li::before {
+    content: "\2013";
+    position: absolute;
+    left: 0;
+    color: var(--brand);
+  }
+
+  /* ========== Timeline (横向进度点) ========== */
+  .timeline {
+    display: flex;
+    gap: 12pt;
+    margin-top: 6pt;
+  }
+  .tl-step {
+    flex: 1;
+    break-inside: avoid;
+  }
+  .tl-year {
+    font-family: var(--serif);
+    font-size: 11pt;
+    font-weight: 500;
+    color: var(--brand);
+    margin-bottom: 2pt;
+  }
+  .tl-head {
+    font-size: 10pt;
+    font-weight: 500;
+    color: var(--near-black);
+    margin-bottom: 2pt;
+  }
+  .tl-body {
+    font-size: 9pt;
+    color: var(--olive);
+    line-height: 1.4;
+  }
+
+  /* ========== Tag ========== */
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);    /* 实色！不要 rgba */
+    color: var(--brand);
+    font-size: 9pt;
+    font-weight: 500;
+    padding: 1pt 5pt;
+    border-radius: 3pt;
+    letter-spacing: 0.3pt;
+    margin-right: 3pt;
+  }
+
+  /* ========== Callout / 高亮块 ========== */
+  /* 参考 resume.html .team-culture：透明底 + 单左侧 brand 竖条。
+     不做容器也不做圆角，气质是"一条旁注"而不是"一个卡片"。 */
+  .callout {
+    background: transparent;
+    border-left: 1.8pt solid var(--brand);
+    padding: 4pt 0 4pt 14pt;
+    margin: 10pt 0;
+    font-size: 10pt;
+    line-height: 1.5;
+    color: var(--olive);
+    break-inside: avoid;
+  }
+  .callout .hl, .callout .em-brand { color: var(--brand); }
+
+  /* ========== TABLE (kami-table) ========== */
+  table, .kami-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    margin: 8pt 0;
+    break-inside: avoid;
+  }
+  table th, .kami-table th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--dark-warm);
+    padding: 4pt 6pt;
+    border-bottom: 1pt solid var(--border);
+    background: transparent;
+  }
+  table td, .kami-table td {
+    padding: 3pt 6pt;
+    border-bottom: 0.3pt solid var(--border-soft);
+    vertical-align: top;
+  }
+  table.compact th, .kami-table.compact th { padding: 2pt 5pt; font-size: 8pt; }
+  table.compact td, .kami-table.compact td { padding: 1pt 5pt; font-size: 8pt; line-height: 1.4; }
+  table.financial td:not(:first-child), .kami-table.financial td:not(:first-child) {
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+  table.financial th:not(:first-child), .kami-table.financial th:not(:first-child) { text-align: right; }
+  table.striped tbody tr:nth-child(even) td, .kami-table.striped tbody tr:nth-child(even) td {
+    background: var(--ivory);
+  }
+  table .total td, .kami-table .total td {
+    font-weight: 500; border-top: 1pt solid var(--brand); border-bottom: none; color: var(--near-black);
+  }
+
+  /* BEGIN KAMI-CODE */
+  code {
+    font-family: var(--mono), var(--serif), monospace;
+    font-size: 9pt;
+    background: var(--ivory);
+    padding: 1pt 4pt;
+    border-radius: 2pt;
+    color: var(--dark-warm);
+    font-variant-ligatures: none;
+  }
+  /* END KAMI-CODE */
+
+  /* ========== FOOTER ========== */
+  .footer {
+    margin-top: 18pt;
+    padding-top: 6pt;
+    border-top: 0.3pt dotted var(--border);
+    font-size: 9pt;
+    color: var(--stone);
+    display: flex;
+    justify-content: space-between;
+    letter-spacing: 0.3pt;
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== HEADER ========== -->
+<div class="header">
+  <div class="title-block">
+    <div class="eyebrow">产品方案 · 执行摘要</div>
+    <h1>把 B 站动态页变成可处理的收件箱</h1>
+    <div class="subtitle">BiliDynamicBox — 仅视频动态 · 按日分组 · 想看 / 不想看一键决策</div>
+  </div>
+  <div class="meta">
+    BiliDynamicBox<br>
+    2026.05.29<br>
+    v0.0.1 · 开源预览
+  </div>
+  <!-- 品牌 logo 槽(可选,来自 brand profile 的 logo 字段)。无 logo 时保持注释,勿插破图。
+       有 logo 时取消注释,把 src 换成已展开的本地绝对路径:
+  <img class="brand-logo" src="/absolute/path/to/logo.svg" alt=""> -->
+</div>
+
+<!-- ========== METRICS（可选，3-4 卡最佳） ========== -->
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-value">1</div>
+    <div class="metric-label">页面 · 仅 t.bilibili.com</div>
+  </div>
+  <div class="metric">
+    <div class="metric-value">3</div>
+    <div class="metric-label">日期档 · 今天 / 昨天 / 更早</div>
+  </div>
+  <div class="metric">
+    <div class="metric-value">5</div>
+    <div class="metric-label">次 · 同 UP 触发取关确认</div>
+  </div>
+  <div class="metric">
+    <div class="metric-value">0</div>
+    <div class="metric-label">元 · 开源本地存储</div>
+  </div>
+</div>
+
+<!-- ========== LEAD（导语，一段） ========== -->
+<p class="lead">
+  动态页混有图文与视频，扫读成本高。BiliDynamicBox 用 <span class="hl">收件箱式卡片流</span> 只呈现视频动态，把每次打开变成「处理待办」：想看进稍后再看，不想看进垃圾箱且刷新不再出现。
+</p>
+
+<!-- ========== 核心内容（两栏） ========== -->
+<div class="two-col">
+  <section>
+    <h2>用户价值</h2>
+    <p>面向高频刷动态的用户，把「浏览」收窄为「决策」。</p>
+    <ul class="dash">
+      <li>按日分组，先处理今天再翻历史</li>
+      <li>想看一键写入 B 站稍后再看，<span class="hl">无需 API Key</span></li>
+      <li>不想看仅隐藏当前条，不连带屏蔽 UP 其它内容</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>技术要点</h2>
+    <p>Manifest V3 + Vue 3 + Pinia，UI 参考 BewlyBewly 扫读体验。</p>
+    <ul class="dash">
+      <li>Content Script 替换动态页内容区</li>
+      <li>chrome.storage.local 持久化垃圾箱与计数</li>
+      <li>同源 Cookie 调用公开接口，仓库不含密钥</li>
+    </ul>
+  </section>
+</div>
+
+<!-- ========== Timeline / Roadmap（可选） ========== -->
+<section>
+  <h2>交付路线</h2>
+  <div class="timeline">
+    <div class="tl-step">
+      <div class="tl-year">M01</div>
+      <div class="tl-head">骨架与页面接管</div>
+      <div class="tl-body">注入、替换内容区、挂载 Vue 根节点</div>
+    </div>
+    <div class="tl-step">
+      <div class="tl-year">M02–M04</div>
+      <div class="tl-head">过滤 · 卡片 · 持久化</div>
+      <div class="tl-body">仅视频、分组展示、垃圾箱与计数</div>
+    </div>
+    <div class="tl-step">
+      <div class="tl-year">M05</div>
+      <div class="tl-head">取关阈值</div>
+      <div class="tl-body">连续 5 次不想看即时弹窗确认</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CALLOUT（可选）========== -->
+<div class="callout">
+  成功标准：用户在动态页内完成分组浏览与想看 / 不想看决策；规则一致、反馈轻量、数据仅存本地。
+</div>
+
+<!-- ========== FOOTER ========== -->
+<div class="footer">
+  <span>公开 · GitHub</span>
+  <span>github.com/486287441/BiliDynamicBox</span>
+</div>
+
+</body>
+</html>
