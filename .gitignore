@@ -19,7 +19,7 @@ credentials.json
 *.xpi
 dist.zip
 extension.zip
-billbillRead-extension.zip
+BiliDynamicBox-extension.zip
 
 # OS & editors
 .DS_Store

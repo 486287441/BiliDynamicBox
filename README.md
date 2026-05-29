@@ -1,4 +1,4 @@
-# billbillRead
+# BiliDynamicBox
 
 在 [B 站动态页](https://t.bilibili.com/) 将内容区替换为「收件箱」式视频动态流：按日期分组、快速标记「想看 / 不想看」，并支持垃圾箱与连续「不想看」后的取关确认。
 
@@ -15,8 +15,8 @@
 1. 克隆本仓库：
 
    ```bash
-   git clone https://github.com/486287441/billbillRead.git
-   cd billbillRead/extension
+   git clone https://github.com/486287441/BiliDynamicBox.git
+   cd BiliDynamicBox/extension
    ```
 
 2. 安装依赖并构建：
