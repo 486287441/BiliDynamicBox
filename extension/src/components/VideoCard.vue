@@ -39,7 +39,7 @@
           class="action-button action-button-primary"
           type="button"
           :disabled="isPending"
-          @click="$emit('want-watch')"
+          @click="onWantWatchClick"
         >
           {{ isPending ? "处理中..." : "想看" }}
         </button>
@@ -56,6 +56,7 @@
 import { computed } from "vue"
 
 import type { VideoDynamicCard } from "../domain/types"
+import { getVideoUrl, openVideoInNewTab } from "../utils/video-url"
 
 const props = defineProps<{
   card: VideoDynamicCard
@@ -63,10 +64,15 @@ const props = defineProps<{
   wantWatchMap: Record<string, boolean>
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (event: "want-watch"): void
   (event: "dislike"): void
 }>()
+
+function onWantWatchClick(): void {
+  openVideoInNewTab(props.card)
+  emit("want-watch")
+}
 
 const coverUrl = computed(() => {
   return props.card.cover ? `${props.card.cover}@672w_378h_1c` : ""
@@ -76,15 +82,7 @@ const avatarUrl = computed(() => {
   return props.card.upAvatar ? `${props.card.upAvatar}@48w_48h_1c_1s` : ""
 })
 
-const videoUrl = computed(() => {
-  if (props.card.videoBvid) {
-    return `https://www.bilibili.com/video/${props.card.videoBvid}`
-  }
-  if (props.card.videoAid) {
-    return `https://www.bilibili.com/video/av${props.card.videoAid}`
-  }
-  return "https://www.bilibili.com/"
-})
+const videoUrl = computed(() => getVideoUrl(props.card))
 
 const upSpaceUrl = computed(() => {
   if (props.card.upMid) {
