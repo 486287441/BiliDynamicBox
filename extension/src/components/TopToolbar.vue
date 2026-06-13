@@ -1,14 +1,62 @@
 <template>
   <header class="top-toolbar">
-    <h1 class="top-toolbar-title">动态收件箱</h1>
+    <div class="top-toolbar-left">
+      <h1 class="top-toolbar-title">动态收件箱</h1>
+      <a
+        class="toolbar-entry-button toolbar-back-button"
+        href="https://www.bilibili.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        回到B站
+      </a>
+    </div>
     <div class="top-toolbar-center">
-      <input
-        class="toolbar-search-input"
-        type="search"
-        :value="searchQuery"
-        placeholder="搜索视频标题或UP主"
-        @input="onInput"
-      />
+      <div class="toolbar-search-wrap">
+        <div class="toolbar-search-scope" role="radiogroup" aria-label="搜索范围">
+          <button
+            class="toolbar-search-scope-button"
+            :class="{ 'is-active': searchScope === 'dynamics' }"
+            type="button"
+            role="radio"
+            :aria-checked="searchScope === 'dynamics'"
+            @click="setSearchScope('dynamics')"
+          >
+            动态
+          </button>
+          <button
+            class="toolbar-search-scope-button"
+            :class="{ 'is-active': searchScope === 'bilibili' }"
+            type="button"
+            role="radio"
+            :aria-checked="searchScope === 'bilibili'"
+            @click="setSearchScope('bilibili')"
+          >
+            B站
+          </button>
+        </div>
+        <div class="toolbar-search-field">
+          <input
+            ref="searchInputRef"
+            class="toolbar-search-input"
+            type="text"
+            :value="searchQuery"
+            :placeholder="searchPlaceholder"
+            enterkeyhint="search"
+            @input="onInput"
+            @keydown="onSearchKeydown"
+          />
+          <button
+            v-if="searchQuery"
+            class="toolbar-search-clear"
+            type="button"
+            aria-label="清除搜索"
+            @click="clearSearch"
+          >
+            ×
+          </button>
+        </div>
+      </div>
     </div>
     <div class="top-toolbar-actions">
       <div class="duration-filter-wrap">
@@ -57,9 +105,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 
+export type SearchScope = "dynamics" | "bilibili"
+
 const props = defineProps<{
   trashCount: number
   searchQuery: string
+  searchScope: SearchScope
   minDurationMinutes: string
   hideWantWatch: boolean
 }>()
@@ -68,11 +119,20 @@ const emit = defineEmits<{
   (event: "open-trash"): void
   (event: "toggle-hide-want-watch"): void
   (event: "update:searchQuery", value: string): void
+  (event: "update:searchScope", value: SearchScope): void
   (event: "update:minDurationMinutes", value: string): void
 }>()
 
+const searchPlaceholder = computed(() => {
+  if (props.searchScope === "bilibili") {
+    return "搜索 B 站视频，回车跳转"
+  }
+  return "搜索视频标题或UP主"
+})
+
 const durationPanelOpen = ref(false)
 const draftDurationMinutes = ref(props.minDurationMinutes)
+const searchInputRef = ref<HTMLInputElement | null>(null)
 
 const durationFilterLabel = computed(() => {
   const text = props.minDurationMinutes.trim()
@@ -89,12 +149,40 @@ watch(
   },
 )
 
+function setSearchScope(scope: SearchScope): void {
+  if (scope === props.searchScope) {
+    return
+  }
+  emit("update:searchScope", scope)
+}
+
 function onInput(event: Event): void {
   const target = event.target
   if (!(target instanceof HTMLInputElement)) {
     return
   }
   emit("update:searchQuery", target.value)
+}
+
+function clearSearch(): void {
+  emit("update:searchQuery", "")
+  searchInputRef.value?.focus()
+}
+
+function onSearchKeydown(event: KeyboardEvent): void {
+  if (props.searchScope !== "bilibili" || event.key !== "Enter") {
+    return
+  }
+  event.preventDefault()
+  const query = props.searchQuery.trim()
+  if (!query) {
+    return
+  }
+  window.open(
+    `https://search.bilibili.com/all?keyword=${encodeURIComponent(query)}`,
+    "_blank",
+    "noopener,noreferrer",
+  )
 }
 
 function onDurationInput(event: Event): void {

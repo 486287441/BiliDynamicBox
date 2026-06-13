@@ -3,11 +3,13 @@
     <TopToolbar
       :trash-count="trash.count"
       :search-query="searchQuery"
+      :search-scope="searchScope"
       :min-duration-minutes="minDurationMinutes"
       :hide-want-watch="hideWantWatch"
       @open-trash="trash.setOpen(true)"
       @toggle-hide-want-watch="onToggleHideWantWatch"
       @update:search-query="searchQuery = $event"
+      @update:search-scope="searchScope = $event"
       @update:min-duration-minutes="onMinDurationMinutesUpdate"
     />
 
@@ -29,7 +31,11 @@
       <p v-if="inbox.loading && visibleCardCount === 0" class="inbox-load-more-tip">正在加载动态...</p>
       <p v-else-if="isFillingList" class="inbox-load-more-tip">正在补足列表...</p>
       <p v-else-if="!inbox.loading && !isFillingList && displayGroups.length === 0">
-        {{ normalizedQuery || minDurationSeconds > 0 ? "没有匹配到筛选条件的视频。" : "暂无可展示的视频动态。" }}
+        {{
+          (searchScope === "dynamics" && normalizedQuery) || minDurationSeconds > 0
+            ? "没有匹配到筛选条件的视频。"
+            : "暂无可展示的视频动态。"
+        }}
       </p>
       <p v-else-if="inbox.loadingMore && !inbox.prefetching" class="inbox-load-more-tip">正在加载更多...</p>
       <p v-else-if="!inbox.hasMore && displayGroups.length > 0" class="inbox-load-more-tip">已经到底了</p>
@@ -49,7 +55,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue"
 
-import TopToolbar from "../components/TopToolbar.vue"
+import TopToolbar, { type SearchScope } from "../components/TopToolbar.vue"
 import TrashModal from "../components/TrashModal.vue"
 import { getDateGroupKey } from "../domain/group-by-date"
 import type { DateGroup, VideoDynamicCard } from "../domain/types"
@@ -65,6 +71,7 @@ const inbox = useInboxStore()
 const decision = useDecisionStore()
 const trash = useTrashStore()
 const searchQuery = ref("")
+const searchScope = ref<SearchScope>("dynamics")
 const minDurationMinutes = ref(persistedState.minDurationMinutes)
 const hideWantWatch = ref(persistedState.hideWantWatch)
 let scrollRoot: HTMLElement | null = null
@@ -85,7 +92,10 @@ function getScrollRoot(): HTMLElement | null {
 
 const normalizedQuery = computed(() => searchQuery.value.trim().toLocaleLowerCase())
 const hasActiveDisplayFilters = computed(
-  () => normalizedQuery.value.length > 0 || minDurationSeconds.value > 0 || hideWantWatch.value,
+  () =>
+    (searchScope.value === "dynamics" && normalizedQuery.value.length > 0) ||
+    minDurationSeconds.value > 0 ||
+    hideWantWatch.value,
 )
 const minDurationSeconds = computed(() => {
   const text = minDurationMinutes.value.trim()
@@ -110,7 +120,7 @@ function passesDisplayFilters(item: VideoDynamicCard): boolean {
   if (!matchesDuration) {
     return false
   }
-  if (!normalizedQuery.value) {
+  if (searchScope.value !== "dynamics" || !normalizedQuery.value) {
     return true
   }
   const title = item.title.toLocaleLowerCase()

@@ -4,7 +4,7 @@ import type { VideoDynamicCard } from "../domain/types"
 import { readPersistedState, type TrashItem } from "../services/storage"
 
 const persistedState = readPersistedState()
-const MAX_TRASH_ITEMS = 50
+const MAX_TRASH_ITEMS = 500
 
 export const useTrashStore = defineStore("trash", {
   state: () => ({
