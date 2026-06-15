@@ -6,6 +6,8 @@
 | --- | --- | --- |
 | `one-pager.html` | 一页纸 | 执行摘要，适合对外快速介绍 |
 | `long-doc.html` | 长文档 | 产品与技术白皮书（约 5 章） |
+| `api-dataflow-long-doc.html` | 长文档 | API 与动态收件箱数据流说明（10 章，由 Markdown 生成） |
+| `build-api-dataflow-html.py` | 构建脚本 | 从 `../API与动态收件箱数据流说明.md` 生成上述 HTML |
 | `slides-weasy.html` | 演讲幻灯片 | WeasyPrint 16:9 幻灯片，可导出 PDF |
 | `slides-marp.md` | Markdown 演示稿 | Marp 格式，配合 `slides-marp.css` |
 
@@ -13,7 +15,7 @@
 
 ### 浏览器预览
 
-直接打开 `one-pager.html`、`long-doc.html`、`slides-weasy.html`、`slides-marp.html`。
+直接打开 `one-pager.html`、`long-doc.html`、`api-dataflow-long-doc.html`、`slides-weasy.html`、`slides-marp.html`。
 
 ### WeasyPrint（Windows 本机已配置）
 
@@ -23,6 +25,7 @@
 cd docs/kami
 python -m weasyprint one-pager.html one-pager.pdf
 python -m weasyprint long-doc.html long-doc.pdf
+python -m weasyprint api-dataflow-long-doc.html api-dataflow-long-doc.pdf
 python -m weasyprint slides-weasy.html slides-weasy.pdf
 ```
 
