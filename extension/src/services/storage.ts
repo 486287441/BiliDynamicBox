@@ -1,4 +1,5 @@
 import type { VideoDynamicCard } from "../domain/types"
+import type { ViewMode } from "../domain/view-mode"
 
 const LEGACY_DISLIKED_KEY = "bewly:disliked-dynamic-ids"
 const STORAGE_KEY = "bewly:inbox-state"
@@ -17,6 +18,8 @@ export interface PersistedInboxState {
   minDurationMinutes: string
   wantWatchDynamicIds: string[]
   hideWantWatch: boolean
+  openVideoOnWantWatch: boolean
+  viewMode: ViewMode
 }
 
 interface PersistedEnvelope {
@@ -31,6 +34,8 @@ const EMPTY_STATE: PersistedInboxState = {
   minDurationMinutes: "",
   wantWatchDynamicIds: [],
   hideWantWatch: false,
+  openVideoOnWantWatch: true,
+  viewMode: "inbox",
 }
 
 function normalizeIdList(value: unknown): string[] {
@@ -143,6 +148,8 @@ function normalizeState(value: unknown): PersistedInboxState {
     minDurationMinutes: normalizeMinDurationMinutes(state.minDurationMinutes),
     wantWatchDynamicIds: normalizeIdList(state.wantWatchDynamicIds),
     hideWantWatch: state.hideWantWatch === true,
+    openVideoOnWantWatch: state.openVideoOnWantWatch !== false,
+    viewMode: "inbox",
   }
 }
 

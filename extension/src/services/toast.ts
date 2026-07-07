@@ -1,3 +1,5 @@
+import { fadeSlideIn, fadeSlideOut } from "../utils/motion"
+
 type ToastType = "success" | "error"
 
 let root: HTMLDivElement | null = null
@@ -19,17 +21,18 @@ export function showToast(message: string, type: ToastType = "success"): void {
   toast.textContent = message
   host.appendChild(toast)
 
-  requestAnimationFrame(() => {
-    toast.classList.add("show")
-  })
+  fadeSlideIn(toast, { y: -10, duration: 0.26 })
 
   const remove = () => {
-    toast.classList.remove("show")
-    window.setTimeout(() => {
-      if (host.contains(toast)) {
-        host.removeChild(toast)
-      }
-    }, 180)
+    fadeSlideOut(toast, {
+      y: -6,
+      duration: 0.18,
+      onComplete: () => {
+        if (host.contains(toast)) {
+          host.removeChild(toast)
+        }
+      },
+    })
   }
 
   window.setTimeout(remove, 2200)

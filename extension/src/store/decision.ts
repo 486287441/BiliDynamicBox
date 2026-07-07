@@ -17,6 +17,7 @@ export const useDecisionStore = defineStore("decision", {
     wantWatchIds: new Set(persistedState.wantWatchDynamicIds),
     upDislikeCounts: { ...persistedState.upDislikeCounts } as Record<string, number>,
     promptingUpMid: "",
+    unfollowingUpMid: "",
   }),
   actions: {
     async markWantWatch(card: VideoDynamicCard): Promise<void> {
@@ -119,6 +120,30 @@ export const useDecisionStore = defineStore("decision", {
         showToast(`取关失败：${message}`, "error")
       } finally {
         this.promptingUpMid = ""
+      }
+    },
+    async unfollowCreator(upMid: string, upName: string): Promise<boolean> {
+      if (!upMid || this.unfollowingUpMid) {
+        return false
+      }
+
+      const displayName = upName || "该 UP"
+      const confirmed = window.confirm(`确认取关 ${displayName}？`)
+      if (!confirmed) {
+        return false
+      }
+
+      this.unfollowingUpMid = upMid
+      try {
+        await unfollowUp(upMid)
+        showToast(`已取关 ${displayName}`)
+        return true
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "未知错误"
+        showToast(`取关失败：${message}`, "error")
+        return false
+      } finally {
+        this.unfollowingUpMid = ""
       }
     },
   },

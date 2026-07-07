@@ -1,32 +1,43 @@
 <template>
   <main class="inbox-shell">
     <TopToolbar
+      :view-mode="viewMode"
       :trash-count="trash.count"
       :search-query="searchQuery"
       :search-scope="searchScope"
       :min-duration-minutes="minDurationMinutes"
       :hide-want-watch="hideWantWatch"
+      :open-video-on-want-watch="openVideoOnWantWatch"
       @open-trash="trash.setOpen(true)"
       @toggle-hide-want-watch="onToggleHideWantWatch"
+      @toggle-open-video-on-want-watch="onToggleOpenVideoOnWantWatch"
+      @update:view-mode="onViewModeUpdate"
       @update:search-query="searchQuery = $event"
       @update:search-scope="searchScope = $event"
       @update:min-duration-minutes="onMinDurationMinutesUpdate"
     />
 
-    <section v-if="inbox.error" class="inbox-error">
+    <section v-if="viewMode === 'inbox' && inbox.error" class="inbox-error">
       {{ inbox.error }}
     </section>
 
-    <section v-else class="inbox-content">
+    <section v-else-if="viewMode === 'inbox'" class="inbox-content">
       <InboxGroup
         v-for="group in displayGroups"
         :key="group.key"
         :group="group"
         :pending-map="decision.pendingMap"
         :want-watch-map="wantWatchMap"
+        :open-video-on-want-watch="openVideoOnWantWatch"
         :final-count-map="filteredFinalGroupCounts"
+        :leave-reason-map="cardLeaveReasons"
+        :enter-card-ids="inbox.enterAnimatedIds"
+        :unfollowing-up-mid="decision.unfollowingUpMid"
         @want-watch="onWantWatch"
         @dislike="onDislike"
+        @unfollow="onUnfollow"
+        @leave-complete="onCardLeaveComplete"
+        @enter-complete="onCardEnterComplete"
       />
       <p v-if="inbox.loading && visibleCardCount === 0" class="inbox-load-more-tip">正在加载动态...</p>
       <p v-else-if="isFillingList" class="inbox-load-more-tip">正在补足列表...</p>
@@ -40,6 +51,8 @@
       <p v-else-if="inbox.loadingMore && !inbox.prefetching" class="inbox-load-more-tip">正在加载更多...</p>
       <p v-else-if="!inbox.hasMore && displayGroups.length > 0" class="inbox-load-more-tip">已经到底了</p>
     </section>
+
+    <UpFilterView v-else-if="viewMode === 'up-filter'" />
 
     <TrashModal
       :open="trash.open"
@@ -56,24 +69,34 @@
 import { computed, onMounted, onUnmounted, ref } from "vue"
 
 import TopToolbar, { type SearchScope } from "../components/TopToolbar.vue"
+import UpFilterView from "../components/UpFilterView.vue"
 import TrashModal from "../components/TrashModal.vue"
+import type { ViewMode } from "../domain/view-mode"
 import { getDateGroupKey } from "../domain/group-by-date"
 import type { DateGroup, VideoDynamicCard } from "../domain/types"
 import InboxGroup from "../components/InboxGroup.vue"
 import { useDecisionStore } from "../store/decision"
 import { useInboxStore } from "../store/inbox"
+import { useUpFilterStore } from "../store/up-filter"
 import { useTrashStore } from "../store/trash"
 import { readPersistedState, writePersistedState } from "../services/storage"
 import { showToast } from "../services/toast"
+import type { CardLeaveVariant } from "../utils/motion"
 
 const persistedState = readPersistedState()
 const inbox = useInboxStore()
+const upFilter = useUpFilterStore()
 const decision = useDecisionStore()
 const trash = useTrashStore()
 const searchQuery = ref("")
 const searchScope = ref<SearchScope>("dynamics")
+const viewMode = ref<ViewMode>("inbox")
 const minDurationMinutes = ref(persistedState.minDurationMinutes)
 const hideWantWatch = ref(persistedState.hideWantWatch)
+const openVideoOnWantWatch = ref(persistedState.openVideoOnWantWatch)
+const cardLeaveReasons = ref<Record<string, CardLeaveVariant>>({})
+const leavingGroupCounts = ref<Record<string, number>>({})
+let pendingFillAfterLeave = 0
 let scrollRoot: HTMLElement | null = null
 let onScrollHandler: (() => void) | null = null
 let scrollRaf = 0
@@ -137,7 +160,7 @@ const displayGroups = computed<DateGroup[]>(() => {
         items,
       }
     })
-    .filter((group) => group.items.length > 0)
+    .filter((group) => group.items.length > 0 || (leavingGroupCounts.value[group.key] ?? 0) > 0)
 })
 
 const filteredFinalGroupCounts = computed(() => {
@@ -171,16 +194,87 @@ const isFillingList = computed(() => {
   return inbox.prefetching || (inbox.loadingMore && visibleCardCount.value < 18)
 })
 
+function markCardLeaving(card: VideoDynamicCard, reason: CardLeaveVariant): void {
+  cardLeaveReasons.value = { ...cardLeaveReasons.value, [card.dynamicId]: reason }
+  const groupKey = getDateGroupKey(card.publishAt)
+  leavingGroupCounts.value = {
+    ...leavingGroupCounts.value,
+    [groupKey]: (leavingGroupCounts.value[groupKey] ?? 0) + 1,
+  }
+}
+
+function scheduleFillAfterLeave(): void {
+  pendingFillAfterLeave += 1
+}
+
+function runPendingFillAfterLeave(): void {
+  if (pendingFillAfterLeave <= 0) {
+    return
+  }
+  pendingFillAfterLeave -= 1
+  void inbox.fillAfterHide(getScrollRoot())
+}
+
+function onCardLeaveComplete(payload: { dynamicId: string; groupKey: string }): void {
+  const nextReasons = { ...cardLeaveReasons.value }
+  delete nextReasons[payload.dynamicId]
+  cardLeaveReasons.value = nextReasons
+
+  const remaining = (leavingGroupCounts.value[payload.groupKey] ?? 1) - 1
+  if (remaining <= 0) {
+    const nextCounts = { ...leavingGroupCounts.value }
+    delete nextCounts[payload.groupKey]
+    leavingGroupCounts.value = nextCounts
+  } else {
+    leavingGroupCounts.value = { ...leavingGroupCounts.value, [payload.groupKey]: remaining }
+  }
+
+  runPendingFillAfterLeave()
+}
+
+function onCardEnterComplete(dynamicId: string): void {
+  inbox.clearEnterAnimatedId(dynamicId)
+}
+
 async function onWantWatch(card: VideoDynamicCard): Promise<void> {
+  if (hideWantWatch.value) {
+    markCardLeaving(card, "want-watch")
+  }
   await decision.markWantWatch(card)
   if (hideWantWatch.value) {
-    void inbox.fillAfterHide(getScrollRoot())
+    scheduleFillAfterLeave()
   }
 }
 
 function onDislike(card: VideoDynamicCard): void {
+  markCardLeaving(card, "dislike")
   decision.markDislike(card)
-  void inbox.fillAfterHide(getScrollRoot())
+  scheduleFillAfterLeave()
+}
+
+async function onUnfollow(card: VideoDynamicCard): Promise<void> {
+  if (!card.upMid) {
+    return
+  }
+
+  const succeeded = await decision.unfollowCreator(card.upMid, card.upName)
+  if (!succeeded) {
+    return
+  }
+
+  const sameUpCards = inbox.allCards.filter(
+    (item) => item.upMid === card.upMid && !inbox.hiddenIds.has(item.dynamicId),
+  )
+  for (const item of sameUpCards) {
+    if (item.dynamicId !== card.dynamicId) {
+      inbox.removeCard(item.dynamicId)
+    }
+  }
+
+  markCardLeaving(card, "default")
+  inbox.removeCard(card.dynamicId)
+  upFilter.removeCreator(card.upMid)
+  scheduleFillAfterLeave()
 }
 
 function onToggleHideWantWatch(): void {
@@ -189,10 +283,24 @@ function onToggleHideWantWatch(): void {
   void inbox.fillAfterHide(getScrollRoot())
 }
 
+function onToggleOpenVideoOnWantWatch(): void {
+  openVideoOnWantWatch.value = !openVideoOnWantWatch.value
+  writePersistedState({ openVideoOnWantWatch: openVideoOnWantWatch.value })
+}
+
 function onMinDurationMinutesUpdate(value: string): void {
   minDurationMinutes.value = value
   writePersistedState({ minDurationMinutes: value })
   void inbox.fillAfterHide(getScrollRoot())
+}
+
+function onViewModeUpdate(mode: ViewMode): void {
+  viewMode.value = mode
+  if (mode === "inbox") {
+    void inbox.fillAfterHide(getScrollRoot())
+    return
+  }
+  void upFilter.bootstrap()
 }
 
 function onRestore(dynamicId: string): void {
@@ -237,6 +345,9 @@ onMounted(() => {
   }
 
   void inbox.bootstrap(root)
+  if (viewMode.value === "up-filter") {
+    void upFilter.bootstrap()
+  }
 
   onScrollHandler = () => {
     if (scrollRaf) {
@@ -244,7 +355,9 @@ onMounted(() => {
     }
     scrollRaf = window.requestAnimationFrame(() => {
       scrollRaf = 0
-      void inbox.maintainScrollBuffer(root)
+      if (viewMode.value === "inbox") {
+        void inbox.maintainScrollBuffer(root)
+      }
     })
   }
 

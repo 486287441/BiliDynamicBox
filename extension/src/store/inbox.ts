@@ -37,6 +37,7 @@ interface InboxState {
   countingFinalCounts: boolean
   finalCountsReady: boolean
   countScanToken: number
+  enterAnimatedIds: string[]
 }
 
 export const useInboxStore = defineStore("inbox", {
@@ -60,8 +61,15 @@ export const useInboxStore = defineStore("inbox", {
     countingFinalCounts: false,
     finalCountsReady: false,
     countScanToken: 0,
+    enterAnimatedIds: [],
   }),
   actions: {
+    clearEnterAnimatedId(dynamicId: string) {
+      if (!dynamicId) {
+        return
+      }
+      this.enterAnimatedIds = this.enterAnimatedIds.filter((id) => id !== dynamicId)
+    },
     addCountForCard(card: VideoDynamicCard) {
       if (this.hiddenIds.has(card.dynamicId)) {
         return
@@ -184,7 +192,11 @@ export const useInboxStore = defineStore("inbox", {
         }
       }
     },
-    async ensureViewportFilled(scrollRoot: HTMLElement | null = null, maxPages = MAX_AUTOFILL_PAGES): Promise<void> {
+    async ensureViewportFilled(
+      scrollRoot: HTMLElement | null = null,
+      maxPages = MAX_AUTOFILL_PAGES,
+      options?: { markForEnter?: boolean },
+    ): Promise<void> {
       if (!this.hasMore || this.error || this.prefetching) {
         return
       }
@@ -196,7 +208,7 @@ export const useInboxStore = defineStore("inbox", {
           if (!this.needsMoreVisible(scrollRoot)) {
             break
           }
-          await this.load(false)
+          await this.load(false, { markForEnter: options?.markForEnter })
           loadedPages += 1
           if (this.error) {
             break
@@ -215,7 +227,7 @@ export const useInboxStore = defineStore("inbox", {
       await this.bootstrap(scrollRoot)
     },
     async fillAfterHide(scrollRoot: HTMLElement | null = null): Promise<void> {
-      await this.ensureViewportFilled(scrollRoot, 10)
+      await this.ensureViewportFilled(scrollRoot, 10, { markForEnter: true })
       await this.maintainScrollBuffer(scrollRoot)
     },
     removeCard(dynamicId: string) {
@@ -260,7 +272,7 @@ export const useInboxStore = defineStore("inbox", {
       }
       this.rebuildGroups()
     },
-    async load(reset = true, options?: { silent?: boolean }) {
+    async load(reset = true, options?: { silent?: boolean; markForEnter?: boolean }) {
       if (this.loading || this.loadingMore) {
         return
       }
@@ -328,6 +340,12 @@ export const useInboxStore = defineStore("inbox", {
           appendedCards.push(card)
         }
         this.addCountsForCards(appendedCards)
+        if (options?.markForEnter && appendedCards.length > 0) {
+          this.enterAnimatedIds = [
+            ...this.enterAnimatedIds,
+            ...appendedCards.map((card) => card.dynamicId),
+          ]
+        }
         this.rebuildGroups()
 
         if (reset) {

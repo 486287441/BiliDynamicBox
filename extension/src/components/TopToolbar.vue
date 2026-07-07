@@ -1,7 +1,7 @@
 <template>
   <header class="top-toolbar">
     <div class="top-toolbar-left">
-      <h1 class="top-toolbar-title">动态收件箱</h1>
+      <h1 class="top-toolbar-title">{{ viewMode === "inbox" ? "动态收件箱" : "UP主筛选" }}</h1>
       <a
         class="toolbar-entry-button toolbar-back-button"
         href="https://www.bilibili.com/"
@@ -10,8 +10,22 @@
       >
         回到B站
       </a>
+      <div class="toolbar-view-mode" role="radiogroup" aria-label="浏览模式">
+        <button
+          v-for="option in viewModeOptions"
+          :key="option.value"
+          class="toolbar-view-mode-button"
+          :class="{ 'is-active': viewMode === option.value }"
+          type="button"
+          role="radio"
+          :aria-checked="viewMode === option.value"
+          @click="setViewMode(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
     </div>
-    <div class="top-toolbar-center">
+    <div v-if="viewMode === 'inbox'" class="top-toolbar-center">
       <div class="toolbar-search-wrap">
         <div class="toolbar-search-scope" role="radiogroup" aria-label="搜索范围">
           <button
@@ -58,12 +72,12 @@
         </div>
       </div>
     </div>
-    <div class="top-toolbar-actions">
+    <div v-if="viewMode === 'inbox'" class="top-toolbar-actions">
       <div class="duration-filter-wrap">
         <button class="toolbar-entry-button" type="button" @click="toggleDurationPanel">
           {{ durationFilterLabel }}
         </button>
-        <div v-if="durationPanelOpen" class="duration-filter-panel">
+        <div v-if="durationPanelOpen" class="duration-filter-panel" ref="durationPanelRef">
           <label class="duration-filter-label" for="duration-filter-input">最小时长（分钟）</label>
           <input
             id="duration-filter-input"
@@ -89,6 +103,14 @@
       >
         {{ hideWantWatch ? "显示想看" : "隐藏想看" }}
       </button>
+      <button
+        class="toolbar-entry-button"
+        :class="{ 'is-active': openVideoOnWantWatch }"
+        type="button"
+        @click="$emit('toggle-open-video-on-want-watch')"
+      >
+        {{ openVideoOnWantWatch ? "点后打开" : "点不打开" }}
+      </button>
       <a
         class="toolbar-entry-button"
         href="https://www.bilibili.com/watchlater/#/list"
@@ -103,25 +125,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue"
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
+
+import { VIEW_MODE_LABELS, type ViewMode } from "../domain/view-mode"
+import { scaleFadeIn, scaleFadeOut } from "../utils/motion"
 
 export type SearchScope = "dynamics" | "bilibili"
 
+const viewModeOptions: { value: ViewMode; label: string }[] = [
+  { value: "inbox", label: VIEW_MODE_LABELS.inbox },
+  { value: "up-filter", label: VIEW_MODE_LABELS["up-filter"] },
+]
+
 const props = defineProps<{
+  viewMode: ViewMode
   trashCount: number
   searchQuery: string
   searchScope: SearchScope
   minDurationMinutes: string
   hideWantWatch: boolean
+  openVideoOnWantWatch: boolean
 }>()
 
 const emit = defineEmits<{
   (event: "open-trash"): void
   (event: "toggle-hide-want-watch"): void
+  (event: "toggle-open-video-on-want-watch"): void
+  (event: "update:viewMode", value: ViewMode): void
   (event: "update:searchQuery", value: string): void
   (event: "update:searchScope", value: SearchScope): void
   (event: "update:minDurationMinutes", value: string): void
 }>()
+
+function setViewMode(mode: ViewMode): void {
+  if (mode === props.viewMode) {
+    return
+  }
+  emit("update:viewMode", mode)
+}
 
 const searchPlaceholder = computed(() => {
   if (props.searchScope === "bilibili") {
@@ -133,6 +174,7 @@ const searchPlaceholder = computed(() => {
 const durationPanelOpen = ref(false)
 const draftDurationMinutes = ref(props.minDurationMinutes)
 const searchInputRef = ref<HTMLInputElement | null>(null)
+const durationPanelRef = ref<HTMLElement | null>(null)
 
 const durationFilterLabel = computed(() => {
   const text = props.minDurationMinutes.trim()
@@ -193,21 +235,49 @@ function onDurationInput(event: Event): void {
   draftDurationMinutes.value = target.value
 }
 
-function toggleDurationPanel(): void {
-  durationPanelOpen.value = !durationPanelOpen.value
-  if (durationPanelOpen.value) {
-    draftDurationMinutes.value = props.minDurationMinutes
+watch(durationPanelOpen, async (open) => {
+  if (!open) {
+    return
   }
+  await nextTick()
+  if (durationPanelRef.value) {
+    scaleFadeIn(durationPanelRef.value, { duration: 0.22 })
+  }
+})
+
+function toggleDurationPanel(): void {
+  if (durationPanelOpen.value) {
+    closeDurationPanel()
+    return
+  }
+  draftDurationMinutes.value = props.minDurationMinutes
+  durationPanelOpen.value = true
 }
 
 function applyDurationFilter(): void {
   emit("update:minDurationMinutes", draftDurationMinutes.value.trim())
-  durationPanelOpen.value = false
+  closeDurationPanel()
 }
 
 function clearDurationFilter(): void {
   draftDurationMinutes.value = ""
   emit("update:minDurationMinutes", "")
+  closeDurationPanel()
+}
+
+function closeDurationPanel(): void {
+  if (!durationPanelOpen.value) {
+    return
+  }
+  if (durationPanelRef.value) {
+    scaleFadeOut(durationPanelRef.value, {
+      duration: 0.16,
+      onComplete: () => {
+        durationPanelOpen.value = false
+      },
+    })
+    return
+  }
   durationPanelOpen.value = false
 }
 
@@ -222,7 +292,7 @@ function onWindowClick(event: MouseEvent): void {
   if (target.closest(".duration-filter-wrap")) {
     return
   }
-  durationPanelOpen.value = false
+  closeDurationPanel()
 }
 
 onMounted(() => {
