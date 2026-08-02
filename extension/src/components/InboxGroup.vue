@@ -14,10 +14,13 @@
         :pending-map="pendingMap"
         :want-watch-map="wantWatchMap"
         :open-video-on-want-watch="openVideoOnWantWatch"
-        :unfollowing-up-mid="unfollowingUpMid"
+        :following-up-map="followingUpMap"
+        :relation-pending-mid="relationPendingMid"
+        :transcriber-state="transcriberMap[item.dynamicId]"
         @want-watch="$emit('want-watch', item)"
+        @help-read="$emit('help-read', item)"
         @dislike="$emit('dislike', item)"
-        @unfollow="$emit('unfollow', item)"
+        @toggle-follow="$emit('toggle-follow', item)"
       />
     </TransitionGroup>
   </article>
@@ -31,30 +34,32 @@ import type { DateGroup, VideoDynamicCard } from "../domain/types"
 import {
   animateGridReflow,
   captureCardRects,
-  cardLeave,
   fadeSlideIn,
   motionEnabled,
-  prepareCardLeave,
   resetCardLeaveStyles,
   type CardLeaveVariant,
 } from "../utils/motion"
 import VideoCard from "./VideoCard.vue"
+import type { TranscriberCardState } from "../store/transcriber"
 
 const props = defineProps<{
   group: DateGroup
   pendingMap: Record<string, boolean>
   wantWatchMap: Record<string, boolean>
   openVideoOnWantWatch: boolean
-  unfollowingUpMid: string
+  followingUpMap: Record<string, boolean>
+  relationPendingMid: string
   finalCountMap: Record<string, number>
   leaveReasonMap: Record<string, CardLeaveVariant>
   enterCardIds: string[]
+  transcriberMap: Record<string, TranscriberCardState | undefined>
 }>()
 
 const emit = defineEmits<{
   (event: "want-watch", card: VideoDynamicCard): void
   (event: "dislike", card: VideoDynamicCard): void
-  (event: "unfollow", card: VideoDynamicCard): void
+  (event: "toggle-follow", card: VideoDynamicCard): void
+  (event: "help-read", card: VideoDynamicCard): void
   (event: "leave-complete", payload: { dynamicId: string; groupKey: string }): void
   (event: "enter-complete", dynamicId: string): void
 }>()
@@ -97,26 +102,10 @@ function finishLeave(htmlEl: HTMLElement, dynamicId: string, done: () => void): 
 function onLeave(el: Element, done: () => void): void {
   const htmlEl = el as HTMLElement
   const dynamicId = htmlEl.dataset.dynamicId ?? ""
-  const variant = props.leaveReasonMap[dynamicId] ?? "default"
 
-  if (!motionEnabled()) {
-    resetCardLeaveStyles(htmlEl)
-    if (dynamicId) {
-      emit("leave-complete", { dynamicId, groupKey: props.group.key })
-    }
-    done()
-    return
-  }
-
-  prepareCardLeave(htmlEl)
-
-  cardLeave(
-    htmlEl,
-    () => {
-      finishLeave(htmlEl, dynamicId, done)
-    },
-    variant,
-  )
+  // The card itself leaves immediately; the single grid reflow below carries
+  // the state change without drawing attention to the dismissed item.
+  finishLeave(htmlEl, dynamicId, done)
 }
 
 function animateFillInCards(items: VideoDynamicCard[]): void {

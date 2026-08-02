@@ -21,6 +21,7 @@ export interface UpCreator {
   followerCount: number
   followedAt: number
   videos: UpSpaceVideo[]
+  detailsLoaded: boolean
   videosLoading: boolean
   videosError: string | null
 }

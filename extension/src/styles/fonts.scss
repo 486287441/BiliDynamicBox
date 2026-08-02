@@ -1,1 +1,24 @@
-/* 英文 Charter 在前、中文仓耳今楷在后，按字符自动匹配（需本机已安装） */
+/* ReadFlow typography: friendly Latin forms from Onest, clear CJK forms from Shanggu Sans SC. */
+@font-face {
+  font-family: "ReadFlow Onest";
+  src: url("../../assets/fonts/Onest[wght].woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ReadFlow Shanggu";
+  src: url("../../assets/fonts/ShangguSansSC-Common.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 250 900;
+  font-display: swap;
+}
+
+:root {
+  --rf-font-sans: "ReadFlow Onest", "ReadFlow Shanggu", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --rf-font-weight-regular: 400;
+  --rf-font-weight-medium: 500;
+  --rf-font-weight-semibold: 600;
+  --rf-font-weight-bold: 700;
+}

@@ -1,4 +1,5 @@
 import type { VideoDynamicCard } from "../domain/types"
+import type { AnimeTrackingItem, AnimeTrackingKind } from "../domain/anime-tracking"
 import type { ViewMode } from "../domain/view-mode"
 
 const LEGACY_DISLIKED_KEY = "bewly:disliked-dynamic-ids"
@@ -17,9 +18,11 @@ export interface PersistedInboxState {
   upDislikeCounts: Record<string, number>
   minDurationMinutes: string
   wantWatchDynamicIds: string[]
+  wantWatchCards: VideoDynamicCard[]
   hideWantWatch: boolean
   openVideoOnWantWatch: boolean
   viewMode: ViewMode
+  trackedAnime: AnimeTrackingItem[]
 }
 
 interface PersistedEnvelope {
@@ -33,9 +36,49 @@ const EMPTY_STATE: PersistedInboxState = {
   upDislikeCounts: {},
   minDurationMinutes: "",
   wantWatchDynamicIds: [],
+  wantWatchCards: [],
   hideWantWatch: false,
   openVideoOnWantWatch: true,
   viewMode: "inbox",
+  trackedAnime: [],
+}
+
+function normalizeTrackedAnime(value: unknown): AnimeTrackingItem[] {
+  if (!Array.isArray(value)) return []
+  const kinds = new Set<AnimeTrackingKind>(["bangumi", "pgc", "ugc", "video"])
+  const result: AnimeTrackingItem[] = []
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue
+    const item = raw as Partial<AnimeTrackingItem>
+    if (typeof item.id !== "string" || !item.id || !kinds.has(item.kind as AnimeTrackingKind)) continue
+    if (typeof item.lookupId !== "string" || typeof item.latestEpisodeKey !== "string") continue
+    result.push({
+      id: item.id,
+      kind: item.kind as AnimeTrackingKind,
+      lookupId: item.lookupId,
+      sourceUrl: typeof item.sourceUrl === "string" ? item.sourceUrl : "",
+      title: typeof item.title === "string" ? item.title : "未命名番剧",
+      cover: typeof item.cover === "string" ? item.cover : "",
+      author: typeof item.author === "string" ? item.author : "",
+      authorUrl: typeof item.authorUrl === "string" ? item.authorUrl : "https://www.bilibili.com/",
+      latestEpisodeTitle: typeof item.latestEpisodeTitle === "string" ? item.latestEpisodeTitle : "最新一集",
+      latestEpisodeUrl: typeof item.latestEpisodeUrl === "string" ? item.latestEpisodeUrl : item.sourceUrl || "https://www.bilibili.com/",
+      latestEpisodeKey: item.latestEpisodeKey,
+      episodeCount: typeof item.episodeCount === "number" ? Math.max(0, Math.floor(item.episodeCount)) : 0,
+      updatedAt: typeof item.updatedAt === "number" ? item.updatedAt : 0,
+      checkedAt: typeof item.checkedAt === "number" ? item.checkedAt : 0,
+      seenEpisodeKey: typeof item.seenEpisodeKey === "string" ? item.seenEpisodeKey : item.latestEpisodeKey,
+      queryTitle: typeof item.queryTitle === "string" && item.queryTitle.trim() ? item.queryTitle.trim() : (typeof item.title === "string" ? item.title : "未命名番剧"),
+      bangumiSubjectId: typeof item.bangumiSubjectId === "number" ? Math.max(0, Math.floor(item.bangumiSubjectId)) : 0,
+      totalEpisodes: typeof item.totalEpisodes === "number" ? Math.max(0, Math.floor(item.totalEpisodes)) : (typeof item.episodeCount === "number" ? Math.max(0, Math.floor(item.episodeCount)) : 0),
+      airedEpisodes: typeof item.airedEpisodes === "number" ? Math.max(0, Math.floor(item.airedEpisodes)) : (typeof item.episodeCount === "number" ? Math.max(0, Math.floor(item.episodeCount)) : 0),
+      airStatus: item.airStatus === "airing" || item.airStatus === "completed" || item.airStatus === "upcoming" ? item.airStatus : "unknown",
+      airDate: typeof item.airDate === "string" ? item.airDate : "",
+      nextEpisodeDate: typeof item.nextEpisodeDate === "string" ? item.nextEpisodeDate : "",
+      summary: typeof item.summary === "string" ? item.summary : "",
+    })
+  }
+  return result.slice(-100)
 }
 
 function normalizeIdList(value: unknown): string[] {
@@ -102,6 +145,16 @@ function normalizeTrashItems(value: unknown): TrashItem[] {
   return list
 }
 
+function normalizeCards(value: unknown): VideoDynamicCard[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value
+    .map((item) => normalizeCard(item))
+    .filter((item): item is VideoDynamicCard => item !== null)
+    .slice(-500)
+}
+
 function normalizeMinDurationMinutes(value: unknown): string {
   if (typeof value !== "string") {
     return ""
@@ -147,9 +200,11 @@ function normalizeState(value: unknown): PersistedInboxState {
     upDislikeCounts: normalizeUpCounts(state.upDislikeCounts),
     minDurationMinutes: normalizeMinDurationMinutes(state.minDurationMinutes),
     wantWatchDynamicIds: normalizeIdList(state.wantWatchDynamicIds),
+    wantWatchCards: normalizeCards(state.wantWatchCards),
     hideWantWatch: state.hideWantWatch === true,
     openVideoOnWantWatch: state.openVideoOnWantWatch !== false,
     viewMode: "inbox",
+    trackedAnime: normalizeTrackedAnime(state.trackedAnime),
   }
 }
 

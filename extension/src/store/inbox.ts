@@ -187,9 +187,6 @@ export const useInboxStore = defineStore("inbox", {
         }
       } finally {
         this.prefetching = false
-        if (scrollRoot && this.needsScrollBuffer(scrollRoot) && this.hasMore && !this.error) {
-          void this.maintainScrollBuffer(scrollRoot)
-        }
       }
     },
     async ensureViewportFilled(

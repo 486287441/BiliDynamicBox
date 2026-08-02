@@ -2,7 +2,7 @@ import { defineStore } from "pinia"
 
 import { shouldPromptUnfollow } from "../domain/decision-rules"
 import type { VideoDynamicCard } from "../domain/types"
-import { saveToWatchLater, unfollowUp } from "../services/bilibili-api"
+import { fetchFollowingRelations, followUp, saveToWatchLater, submitOfficialDislike, unfollowUp } from "../services/bilibili-api"
 import { readPersistedState, writePersistedState } from "../services/storage"
 import { showToast } from "../services/toast"
 import { useInboxStore } from "./inbox"
@@ -15,11 +15,69 @@ export const useDecisionStore = defineStore("decision", {
     pendingMap: {} as Record<string, boolean>,
     dislikedIds: new Set(persistedState.dislikedDynamicIds),
     wantWatchIds: new Set(persistedState.wantWatchDynamicIds),
+    wantWatchCards: [...persistedState.wantWatchCards] as VideoDynamicCard[],
     upDislikeCounts: { ...persistedState.upDislikeCounts } as Record<string, number>,
     promptingUpMid: "",
     unfollowingUpMid: "",
+    followingUpMap: {} as Record<string, boolean>,
+    relationPendingMid: "",
+    relationLookupMids: new Set<string>(),
   }),
   actions: {
+    async ensureFollowingStatuses(cards: VideoDynamicCard[]): Promise<void> {
+      const missing = [...new Set(cards.map((card) => card.upMid).filter(Boolean))]
+        .filter((mid) => this.followingUpMap[mid] === undefined && !this.relationLookupMids.has(mid))
+      if (missing.length === 0) return
+      for (const mid of missing) this.relationLookupMids.add(mid)
+      try {
+        for (let index = 0; index < missing.length; index += 50) {
+          const batch = missing.slice(index, index + 50)
+          const relations = await fetchFollowingRelations(batch)
+          this.followingUpMap = { ...this.followingUpMap, ...relations }
+        }
+      } catch {
+        // 关注状态加载失败不影响视频流；下次出现这些卡片时允许重试。
+      } finally {
+        for (const mid of missing) this.relationLookupMids.delete(mid)
+      }
+    },
+
+    async toggleFollowCreator(upMid: string, upName: string): Promise<boolean> {
+      if (!upMid || this.relationPendingMid) return false
+      const isFollowing = this.followingUpMap[upMid] === true
+      const displayName = upName || "该 UP"
+      if (isFollowing && !window.confirm(`确认取消关注 ${displayName}？`)) return false
+      this.relationPendingMid = upMid
+      try {
+        if (isFollowing) await unfollowUp(upMid)
+        else await followUp(upMid)
+        this.followingUpMap = { ...this.followingUpMap, [upMid]: !isFollowing }
+        showToast(isFollowing ? `已取消关注 ${displayName}` : `已关注 ${displayName}`)
+        return true
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "未知错误"
+        showToast(`${isFollowing ? "取消关注" : "关注"}失败：${message}`, "error")
+        return false
+      } finally {
+        this.relationPendingMid = ""
+      }
+    },
+    syncWantWatchCards(cards: VideoDynamicCard[]): void {
+      const knownDynamicIds = new Set(this.wantWatchCards.map((item) => item.dynamicId))
+      let changed = false
+      for (const card of cards) {
+        if (!this.wantWatchIds.has(card.dynamicId) || knownDynamicIds.has(card.dynamicId)) {
+          continue
+        }
+        this.wantWatchCards.push(card)
+        knownDynamicIds.add(card.dynamicId)
+        changed = true
+      }
+      if (changed) {
+        writePersistedState({ wantWatchCards: this.wantWatchCards })
+      }
+    },
+
     async markWantWatch(card: VideoDynamicCard): Promise<void> {
       if (!card.dynamicId || this.pendingMap[card.dynamicId]) {
         return
@@ -29,8 +87,14 @@ export const useDecisionStore = defineStore("decision", {
       try {
         await saveToWatchLater(card)
         this.wantWatchIds.add(card.dynamicId)
+        const existingIndex = this.wantWatchCards.findIndex((item) => item.dynamicId === card.dynamicId)
+        if (existingIndex >= 0) {
+          this.wantWatchCards.splice(existingIndex, 1)
+        }
+        this.wantWatchCards.push(card)
         writePersistedState({
           wantWatchDynamicIds: [...this.wantWatchIds],
+          wantWatchCards: this.wantWatchCards,
         })
         showToast("已加入稍后再看")
       } catch (error) {
@@ -40,12 +104,22 @@ export const useDecisionStore = defineStore("decision", {
         this.pendingMap[card.dynamicId] = false
       }
     },
-    markDislike(card: VideoDynamicCard): void {
+    async markDislike(card: VideoDynamicCard): Promise<boolean> {
       if (!card.dynamicId) {
-        return
+        return false
       }
-      if (this.dislikedIds.has(card.dynamicId)) {
-        return
+      if (this.dislikedIds.has(card.dynamicId) || this.pendingMap[card.dynamicId]) {
+        return false
+      }
+      this.pendingMap[card.dynamicId] = true
+      try {
+        await submitOfficialDislike(card)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "未知错误"
+        showToast(`B 站不感兴趣提交失败：${message}`, "error")
+        return false
+      } finally {
+        this.pendingMap[card.dynamicId] = false
       }
       this.dislikedIds.add(card.dynamicId)
       if (card.upMid) {
@@ -63,11 +137,12 @@ export const useDecisionStore = defineStore("decision", {
 
       const inbox = useInboxStore()
       inbox.removeCard(card.dynamicId)
-      showToast("已隐藏该动态")
+      showToast("已提交 B 站不感兴趣并隐藏该视频")
 
       if (card.upMid) {
         void this.maybePromptUnfollow(card.upMid, card.upName)
       }
+      return true
     },
     restoreDisliked(card: VideoDynamicCard): void {
       if (!card.dynamicId) {
@@ -108,16 +183,16 @@ export const useDecisionStore = defineStore("decision", {
       try {
         const displayName = upName || "该 UP"
         const confirmed = window.confirm(
-          `你已连续 ${count} 次对 ${displayName} 点“不想看”，是否现在取关？`,
+          `你已连续 ${count} 次对 ${displayName} 点“不想看”，是否现在取消关注？`,
         )
         if (!confirmed) {
           return
         }
         await unfollowUp(upMid)
-        showToast(`已取关 ${displayName}`)
+        showToast(`已取消关注 ${displayName}`)
       } catch (error) {
         const message = error instanceof Error ? error.message : "未知错误"
-        showToast(`取关失败：${message}`, "error")
+        showToast(`取消关注失败：${message}`, "error")
       } finally {
         this.promptingUpMid = ""
       }
@@ -128,7 +203,7 @@ export const useDecisionStore = defineStore("decision", {
       }
 
       const displayName = upName || "该 UP"
-      const confirmed = window.confirm(`确认取关 ${displayName}？`)
+      const confirmed = window.confirm(`确认取消关注 ${displayName}？`)
       if (!confirmed) {
         return false
       }
@@ -136,11 +211,11 @@ export const useDecisionStore = defineStore("decision", {
       this.unfollowingUpMid = upMid
       try {
         await unfollowUp(upMid)
-        showToast(`已取关 ${displayName}`)
+        showToast(`已取消关注 ${displayName}`)
         return true
       } catch (error) {
         const message = error instanceof Error ? error.message : "未知错误"
-        showToast(`取关失败：${message}`, "error")
+        showToast(`取消关注失败：${message}`, "error")
         return false
       } finally {
         this.unfollowingUpMid = ""

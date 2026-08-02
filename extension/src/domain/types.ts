@@ -44,10 +44,27 @@ export interface VideoDynamicCard {
   upName: string
   upAvatar: string
   publishAt: number
+  rank?: number
+  tag?: string
 }
 
 export interface DateGroup {
   key: string
   label: string
   items: VideoDynamicCard[]
+}
+
+export type LibraryKind = "favorites" | "history" | "watchlater"
+
+export interface FavoriteFolder {
+  id: number
+  title: string
+  mediaCount: number
+}
+
+export interface LibraryPageResult {
+  cards: VideoDynamicCard[]
+  hasMore: boolean
+  nextMax?: number
+  nextViewAt?: number
 }

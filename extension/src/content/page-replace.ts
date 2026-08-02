@@ -4,6 +4,8 @@ const APP_MOUNT_ATTR = "data-bewly-inbox-mounted"
 export function ensureAppContainer(): HTMLElement {
   document.documentElement.classList.add("bewly-inbox-page")
   document.body.classList.add("bewly-inbox-page")
+  document.documentElement.classList.toggle("readflow-home-page", window.location.hostname === "www.bilibili.com")
+  document.body.classList.toggle("readflow-home-page", window.location.hostname === "www.bilibili.com")
 
   const existing = document.getElementById(APP_CONTAINER_ID)
   if (existing instanceof HTMLElement) {
@@ -26,4 +28,11 @@ export function isContainerMounted(container: HTMLElement): boolean {
 
 export function markContainerMounted(container: HTMLElement): void {
   container.setAttribute(APP_MOUNT_ATTR, "true")
+}
+
+export function clearPageReplacement(): HTMLElement | null {
+  document.documentElement.classList.remove("bewly-inbox-page", "readflow-home-page")
+  document.body?.classList.remove("bewly-inbox-page", "readflow-home-page")
+  const container = document.getElementById(APP_CONTAINER_ID)
+  return container instanceof HTMLElement ? container : null
 }

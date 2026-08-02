@@ -1,8 +1,8 @@
-import { mountInboxApp } from "../app/main"
-import { startInboxFirstPagePreload } from "../services/inbox-preload"
-import { isTargetMomentsPage, waitForDocumentReady } from "./host-detect"
+import { mountInboxApp, unmountInboxApp } from "../app/main"
+import { isTargetMomentsPage, isTargetPage, waitForDocumentReady } from "./host-detect"
 import {
   ensureAppContainer,
+  clearPageReplacement,
   isContainerMounted,
   markContainerMounted,
 } from "./page-replace"
@@ -25,12 +25,21 @@ async function bootstrap(): Promise<void> {
   }
   bootstrapPending = true
 
-  if (!isTargetMomentsPage()) {
+  if (isTargetMomentsPage()) {
+    window.location.replace("https://www.bilibili.com/?readflow=following")
     bootstrapPending = false
     return
   }
 
-  startInboxFirstPagePreload()
+  if (!isTargetPage()) {
+    const container = clearPageReplacement()
+    if (container) {
+      unmountInboxApp(container)
+      container.remove()
+    }
+    bootstrapPending = false
+    return
+  }
 
   try {
     await waitForDocumentReady()
@@ -60,7 +69,7 @@ function startUrlObserver(): void {
       return
     }
 
-    if (!isTargetMomentsPage()) {
+    if (!isTargetPage()) {
       return
     }
 
@@ -98,7 +107,7 @@ window.addEventListener("pageshow", () => {
 })
 
 window.setInterval(() => {
-  if (!isTargetMomentsPage()) {
+  if (!isTargetPage()) {
     return
   }
   const container = document.getElementById("bewly-inbox-root")

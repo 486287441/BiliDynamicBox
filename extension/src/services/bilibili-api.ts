@@ -1,8 +1,8 @@
-import type { DynamicItem } from "../domain/types"
-import type { VideoDynamicCard } from "../domain/types"
+import type { DynamicItem, FavoriteFolder, LibraryPageResult, VideoDynamicCard } from "../domain/types"
 import type { UpFollowSort } from "../domain/up-filter-types"
 import type { SpaceArchiveInput } from "../domain/up-video-bundle"
 import { invalidateWbiKeys, signWbiParams } from "./wbi-sign"
+import { pageFetch } from "./page-fetch"
 
 export type { UpFollowSort }
 
@@ -362,13 +362,14 @@ async function fetchSpaceArchivesPage(
   mid: string,
   page: number,
   pageSize: number,
+  order: "pubdate" | "click" = "pubdate",
 ): Promise<SpaceArchiveInput[]> {
   const params = {
     mid,
     pn: page,
     ps: pageSize,
     tid: 0,
-    order: "pubdate",
+    order,
     platform: "web",
     web_location: 1550101,
   }
@@ -393,7 +394,8 @@ async function fetchSpaceArchivesPage(
       }
     }
 
-    if ((payload.code === -352 || payload.code === -403) && retry) {
+    // -352 是风控，不应立刻重试放大请求；-403 才刷新一次可能过期的 WBI 密钥。
+    if (payload.code === -403 && retry) {
       invalidateWbiKeys()
       return requestWithWbi(false)
     }
@@ -401,47 +403,441 @@ async function fetchSpaceArchivesPage(
     return parseSpaceArchivePayload(payload)
   }
 
-  try {
-    return await requestWithWbi(true)
-  } catch {
-    const legacyUrl = new URL("https://api.bilibili.com/x/space/arc/search")
-    legacyUrl.searchParams.set("mid", mid)
-    legacyUrl.searchParams.set("pn", String(page))
-    legacyUrl.searchParams.set("ps", String(pageSize))
-    legacyUrl.searchParams.set("order", "pubdate")
-    legacyUrl.searchParams.set("tid", "0")
+  return requestWithWbi(true)
+}
 
-    const response = await fetch(legacyUrl.toString(), {
-      credentials: "include",
-      headers: {
-        Referer: `https://space.bilibili.com/${mid}`,
-      },
-    })
-    if (!response.ok) {
-      throw new Error(`获取投稿失败: ${response.status}`)
-    }
+export async function fetchFollowingRelations(upMids: string[]): Promise<Record<string, boolean>> {
+  const mids = [...new Set(upMids.map((mid) => mid.trim()).filter((mid) => /^\d+$/.test(mid) && Number(mid) > 0))]
+  if (mids.length === 0) return {}
+  const url = new URL("https://api.bilibili.com/x/relation/relations")
+  url.searchParams.set("fids", mids.slice(0, 50).join(","))
+  const response = await fetch(url.toString(), { credentials: "include" })
+  if (!response.ok) throw new Error(`获取关注状态失败: ${response.status}`)
+  const payload = (await response.json()) as {
+    code?: number
+    message?: string
+    data?: Record<string, { attribute?: number }>
+  }
+  if (payload.code !== 0) throw new Error(payload.message || `获取关注状态失败: ${payload.code}`)
+  const result: Record<string, boolean> = {}
+  for (const mid of mids) {
+    const attribute = Number(payload.data?.[mid]?.attribute ?? 0)
+    result[mid] = (attribute & 2) === 2
+  }
+  return result
+}
 
-    const payload = (await response.json()) as {
-      code?: number
-      message?: string
-      data?: {
-        list?: Array<Record<string, unknown>> | { vlist?: Array<Record<string, unknown>> }
-      }
-    }
+function formatDurationText(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return ""
+  const total = Math.floor(seconds)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const rest = total % 60
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`
+    : `${minutes}:${String(rest).padStart(2, "0")}`
+}
 
-    return parseSpaceArchivePayload(payload)
+function libraryCard(input: {
+  aid?: number | string
+  bvid?: string
+  title?: string
+  cover?: string
+  duration?: number
+  play?: number
+  danmaku?: number
+  upMid?: number | string
+  upName?: string
+  upAvatar?: string
+  publishAt?: number
+  keyPrefix: string
+}): VideoDynamicCard {
+  const aid = String(input.aid ?? "")
+  const bvid = input.bvid ?? ""
+  const duration = Number(input.duration ?? 0)
+  return {
+    dynamicId: `${input.keyPrefix}:${bvid || aid}`,
+    videoAid: aid,
+    videoBvid: bvid,
+    title: input.title || "未命名视频",
+    cover: input.cover || "",
+    durationText: formatDurationText(duration),
+    durationSeconds: duration,
+    playCount: Number(input.play ?? 0),
+    danmakuCount: Number(input.danmaku ?? 0),
+    upMid: String(input.upMid ?? ""),
+    upName: input.upName || "未知 UP",
+    upAvatar: input.upAvatar || "",
+    publishAt: Number(input.publishAt ?? 0),
   }
 }
 
-export async function fetchUpCreatorBundle(mid: string): Promise<{
-  followerCount: number
-  recentArchives: SpaceArchiveInput[]
-}> {
-  const followerCount = await fetchUserFollowerCount(mid)
-  const recentArchives = await fetchSpaceArchivesPage(mid, 1, 30)
+async function readApiJson<T>(url: string): Promise<T> {
+  const response = await fetch(url, { credentials: "include" })
+  if (!response.ok) throw new Error(`请求失败: ${response.status}`)
+  const payload = await response.json() as { code?: number; message?: string }
+  if (typeof payload.code === "number" && payload.code !== 0) {
+    throw new Error(payload.message || `接口错误: ${payload.code}`)
+  }
+  return payload as T
+}
+
+export async function fetchFavoriteFolders(): Promise<FavoriteFolder[]> {
+  const user = await fetchLoggedInUser()
+  const url = new URL("https://api.bilibili.com/x/v3/fav/folder/created/list-all")
+  url.searchParams.set("up_mid", user.mid)
+  const payload = await readApiJson<{
+    data?: { list?: Array<{ id?: number; title?: string; media_count?: number }> }
+  }>(url.toString())
+  return (payload.data?.list ?? [])
+    .filter((folder) => Number(folder.id) > 0)
+    .map((folder) => ({
+      id: Number(folder.id),
+      title: folder.title || "未命名收藏夹",
+      mediaCount: Number(folder.media_count ?? 0),
+    }))
+}
+
+export async function fetchFavoriteVideos(mediaId: number, page = 1): Promise<LibraryPageResult> {
+  const url = new URL("https://api.bilibili.com/x/v3/fav/resource/list")
+  url.searchParams.set("media_id", String(mediaId))
+  url.searchParams.set("pn", String(page))
+  url.searchParams.set("ps", "30")
+  url.searchParams.set("order", "mtime")
+  url.searchParams.set("platform", "web")
+  const payload = await readApiJson<{
+    data?: {
+      medias?: Array<{
+        id?: number
+        bvid?: string
+        bv_id?: string
+        title?: string
+        cover?: string
+        duration?: number
+        pubtime?: number
+        upper?: { mid?: number; name?: string; face?: string }
+        cnt_info?: { play?: number; danmaku?: number }
+      }>
+      has_more?: boolean
+    }
+  }>(url.toString())
   return {
-    followerCount,
+    cards: (payload.data?.medias ?? []).map((item) => libraryCard({
+      aid: item.id,
+      bvid: item.bvid || item.bv_id,
+      title: item.title,
+      cover: item.cover,
+      duration: item.duration,
+      play: item.cnt_info?.play,
+      danmaku: item.cnt_info?.danmaku,
+      upMid: item.upper?.mid,
+      upName: item.upper?.name,
+      upAvatar: item.upper?.face,
+      publishAt: item.pubtime,
+      keyPrefix: `favorite:${mediaId}`,
+    })),
+    hasMore: Boolean(payload.data?.has_more),
+  }
+}
+
+export async function fetchWatchLaterVideos(): Promise<LibraryPageResult> {
+  const payload = await readApiJson<{
+    data?: {
+      list?: Array<{
+        aid?: number
+        bvid?: string
+        title?: string
+        pic?: string
+        duration?: number
+        pubdate?: number
+        owner?: { mid?: number; name?: string; face?: string }
+        stat?: { view?: number; danmaku?: number }
+      }>
+    }
+  }>("https://api.bilibili.com/x/v2/history/toview")
+  return {
+    cards: (payload.data?.list ?? []).map((item) => libraryCard({
+      aid: item.aid,
+      bvid: item.bvid,
+      title: item.title,
+      cover: item.pic,
+      duration: item.duration,
+      play: item.stat?.view,
+      danmaku: item.stat?.danmaku,
+      upMid: item.owner?.mid,
+      upName: item.owner?.name,
+      upAvatar: item.owner?.face,
+      publishAt: item.pubdate,
+      keyPrefix: "watchlater",
+    })),
+    hasMore: false,
+  }
+}
+
+export async function fetchHistoryVideos(max = 0, viewAt = 0): Promise<LibraryPageResult> {
+  const url = new URL("https://api.bilibili.com/x/web-interface/history/cursor")
+  url.searchParams.set("max", String(max))
+  url.searchParams.set("view_at", String(viewAt))
+  url.searchParams.set("business", "")
+  url.searchParams.set("ps", "30")
+  const payload = await readApiJson<{
+    data?: {
+      list?: Array<{
+        title?: string
+        cover?: string
+        author_name?: string
+        author_mid?: number
+        duration?: number
+        view_at?: number
+        history?: { oid?: number; bvid?: string }
+      }>
+      cursor?: { max?: number; view_at?: number }
+    }
+  }>(url.toString())
+  const items = payload.data?.list ?? []
+  return {
+    cards: items.map((item) => libraryCard({
+      aid: item.history?.oid,
+      bvid: item.history?.bvid,
+      title: item.title,
+      cover: item.cover,
+      duration: item.duration,
+      upMid: item.author_mid,
+      upName: item.author_name,
+      publishAt: item.view_at,
+      keyPrefix: "history",
+    })),
+    hasMore: items.length > 0 && Boolean(payload.data?.cursor?.max || payload.data?.cursor?.view_at),
+    nextMax: Number(payload.data?.cursor?.max ?? 0),
+    nextViewAt: Number(payload.data?.cursor?.view_at ?? 0),
+  }
+}
+
+export async function addVideoToDefaultFavorite(card: VideoDynamicCard): Promise<void> {
+  const aid = Number(card.videoAid)
+  if (!Number.isFinite(aid) || aid <= 0) {
+    throw new Error("视频 aid 无效")
+  }
+
+  const csrf = getCsrfTokenFromCookie()
+  if (!csrf) {
+    throw new Error("请先登录 B 站")
+  }
+
+  const user = await fetchLoggedInUser()
+  const foldersResponse = await fetch(
+    `https://api.bilibili.com/x/v3/fav/folder/created/list-all?up_mid=${encodeURIComponent(user.mid)}&rid=${aid}&type=2`,
+    { credentials: "include" },
+  )
+  if (!foldersResponse.ok) {
+    throw new Error(`获取收藏夹失败: ${foldersResponse.status}`)
+  }
+  const foldersPayload = (await foldersResponse.json()) as {
+    code?: number
+    message?: string
+    data?: { list?: Array<{ id?: number; title?: string; fav_state?: number }> }
+  }
+  if (foldersPayload.code !== 0) {
+    throw new Error(foldersPayload.message || `获取收藏夹失败: ${foldersPayload.code}`)
+  }
+
+  const folders = foldersPayload.data?.list ?? []
+  if (folders.some((folder) => folder.fav_state === 1)) {
+    return
+  }
+  const defaultFolder = folders.find((folder) => typeof folder.id === "number" && folder.id > 0)
+  if (!defaultFolder?.id) {
+    throw new Error("没有可用的收藏夹")
+  }
+
+  const body = new URLSearchParams()
+  body.set("rid", String(aid))
+  body.set("type", "2")
+  body.set("add_media_ids", String(defaultFolder.id))
+  body.set("del_media_ids", "")
+  body.set("csrf", csrf)
+
+  const response = await fetch("https://api.bilibili.com/x/v3/fav/resource/deal", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+    body: body.toString(),
+  })
+  if (!response.ok) {
+    throw new Error(`收藏接口请求失败: ${response.status}`)
+  }
+  const result = (await response.json()) as CommonApiResponse
+  if (result.code !== 0) {
+    throw new Error(result.message || `收藏接口错误: ${result.code}`)
+  }
+}
+
+/** 通过 B 站 PC 首页官方负反馈通道提交“内容不感兴趣”。 */
+export async function submitOfficialDislike(card: VideoDynamicCard): Promise<void> {
+  const aid = Number(card.videoAid)
+  if (!Number.isFinite(aid) || aid <= 0) {
+    throw new Error("视频 aid 无效")
+  }
+
+  const body = new URLSearchParams()
+  body.set("app_id", "100")
+  body.set("platform", "5")
+  body.set("from_spmid", "")
+  body.set("spmid", "333.1007.0.0")
+  body.set("goto", "av")
+  body.set("id", String(aid))
+  body.set("mid", card.upMid || "0")
+  body.set("track_id", "")
+  body.set("feedback_page", "1")
+  body.set("reason_id", "1")
+
+  const response = await fetch("https://api.bilibili.com/x/web-interface/feedback/dislike", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+    body: body.toString(),
+  })
+  if (!response.ok) {
+    throw new Error(`不感兴趣接口请求失败: ${response.status}`)
+  }
+  const result = (await response.json()) as CommonApiResponse
+  if (result.code !== 0) {
+    throw new Error(result.message || `不感兴趣接口错误: ${result.code}`)
+  }
+}
+
+export interface HomeFeedPageResult {
+  cards: VideoDynamicCard[]
+  hasMore: boolean
+}
+
+interface HomeArchiveRow {
+  aid?: number | string
+  id?: number | string
+  bvid?: string
+  pic?: string
+  title?: string
+  duration?: number
+  pubdate?: number
+  owner?: { mid?: number | string; name?: string; face?: string }
+  stat?: { view?: number; danmaku?: number }
+  rcmd_reason?: { content?: string }
+}
+
+function mapHomeArchive(item: HomeArchiveRow, source: string, rank?: number): VideoDynamicCard | null {
+  const aidValue = item.aid ?? item.id
+  const aid = aidValue === undefined ? "" : String(aidValue)
+  const bvid = typeof item.bvid === "string" ? item.bvid : ""
+  if (!aid && !bvid) return null
+  const durationSeconds = Number.isFinite(item.duration) ? Math.max(0, Math.floor(item.duration ?? 0)) : 0
+  return {
+    dynamicId: `${source}:${bvid || aid}`,
+    videoAid: aid,
+    videoBvid: bvid,
+    title: typeof item.title === "string" ? item.title : "未命名视频",
+    cover: typeof item.pic === "string" ? item.pic : "",
+    durationText: formatVideoDuration(durationSeconds),
+    durationSeconds,
+    playCount: Number.isFinite(item.stat?.view) ? Math.max(0, Math.floor(item.stat?.view ?? 0)) : 0,
+    danmakuCount: Number.isFinite(item.stat?.danmaku) ? Math.max(0, Math.floor(item.stat?.danmaku ?? 0)) : 0,
+    upMid: item.owner?.mid === undefined ? "" : String(item.owner.mid),
+    upName: typeof item.owner?.name === "string" ? item.owner.name : "未知 UP",
+    upAvatar: typeof item.owner?.face === "string" ? item.owner.face : "",
+    publishAt: Number.isFinite(item.pubdate) ? Math.floor(item.pubdate ?? Date.now() / 1000) : Math.floor(Date.now() / 1000),
+    rank,
+    tag: typeof item.rcmd_reason?.content === "string" ? item.rcmd_reason.content : "",
+  }
+}
+
+export async function fetchPopularVideosPage(page: number, pageSize = 30): Promise<HomeFeedPageResult> {
+  const url = new URL("https://api.bilibili.com/x/web-interface/popular")
+  url.searchParams.set("pn", String(page))
+  url.searchParams.set("ps", String(pageSize))
+  const response = await pageFetch(url.toString(), { headers: { Referer: "https://www.bilibili.com/" } })
+  if (!response.ok) throw new Error(`获取热门视频失败：${response.status}`)
+  const payload = (await response.json()) as { code?: number; message?: string; data?: { list?: HomeArchiveRow[]; no_more?: boolean } }
+  if (payload.code !== 0) throw new Error(payload.message || `热门视频接口错误：${payload.code}`)
+  const cards = (payload.data?.list ?? []).map((item) => mapHomeArchive(item, "popular")).filter((item): item is VideoDynamicCard => item !== null)
+  return { cards, hasMore: payload.data?.no_more !== true && cards.length > 0 }
+}
+
+export async function fetchRankingVideos(): Promise<HomeFeedPageResult> {
+  const url = new URL("https://api.bilibili.com/x/web-interface/ranking/v2")
+  url.searchParams.set("rid", "0")
+  url.searchParams.set("type", "all")
+  const response = await pageFetch(url.toString(), { headers: { Referer: "https://www.bilibili.com/" } })
+  if (!response.ok) throw new Error(`获取排行榜失败：${response.status}`)
+  const payload = (await response.json()) as { code?: number; message?: string; data?: { list?: HomeArchiveRow[] } }
+  if (payload.code !== 0) throw new Error(payload.message || `排行榜接口错误：${payload.code}`)
+  const cards = (payload.data?.list ?? []).map((item, index) => mapHomeArchive(item, "ranking", index + 1)).filter((item): item is VideoDynamicCard => item !== null)
+  return { cards, hasMore: false }
+}
+
+function formatVideoDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return ""
+  }
+  const total = Math.floor(seconds)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const rest = total % 60
+  return hours > 0
+    ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`
+    : `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`
+}
+
+/** B 站首页使用的网页推荐流，与 BewlyBewly 的 web 推荐模式保持一致。 */
+export async function fetchHomeFeedPage(freshIndex: number, pageSize = 30): Promise<HomeFeedPageResult> {
+  const url = new URL("https://api.bilibili.com/x/web-interface/index/top/feed/rcmd")
+  url.searchParams.set("fresh_idx", String(freshIndex))
+  url.searchParams.set("feed_version", "V2")
+  url.searchParams.set("fresh_type", "4")
+  url.searchParams.set("ps", String(pageSize))
+  url.searchParams.set("plat", "1")
+
+  const response = await fetch(url.toString(), { credentials: "include" })
+  if (!response.ok) {
+    throw new Error(`获取首页推荐失败：${response.status}`)
+  }
+
+  const payload = (await response.json()) as {
+    code?: number
+    message?: string
+    data?: {
+      item?: Array<{
+        id?: number | string
+        bvid?: string
+        pic?: string
+        title?: string
+        duration?: number
+        pubdate?: number
+        owner?: { mid?: number | string; name?: string; face?: string }
+        stat?: { view?: number; danmaku?: number }
+      }>
+    }
+  }
+  if (payload.code !== 0) {
+    throw new Error(payload.message || `首页推荐接口错误：${payload.code}`)
+  }
+
+  const rows = Array.isArray(payload.data?.item) ? payload.data.item : []
+  const cards = rows.map((item) => mapHomeArchive(item, "home")).filter((item): item is VideoDynamicCard => item !== null)
+
+  return { cards, hasMore: cards.length > 0 }
+}
+
+export async function fetchUpCreatorBundle(mid: string): Promise<{
+  recentArchives: SpaceArchiveInput[]
+  mostPlayedArchive?: SpaceArchiveInput
+}> {
+  // 两种排序无法在同一次空间请求中得到。请求量保持为固定两次，调用方负责排队与缓存。
+  // 多取一条仅用于“想看的”与最新视频重复时补足五张卡片。
+  const recentArchives = await fetchSpaceArchivesPage(mid, 1, 4, "pubdate")
+  await new Promise((resolve) => window.setTimeout(resolve, 1000))
+  const mostPlayedArchives = await fetchSpaceArchivesPage(mid, 1, 1, "click")
+  return {
     recentArchives,
+    mostPlayedArchive: mostPlayedArchives[0],
   }
 }
 

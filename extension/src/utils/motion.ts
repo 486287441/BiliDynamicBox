@@ -67,7 +67,7 @@ export function staggerIn(
   const { y = 10, stagger = 0.03, duration = 0.24, maxItems = 10 } = options ?? {}
   const items = gsap.utils.toArray(targets)
   if (items.length === 0) {
-    return gsap.set([])
+    return gsap.set([], {})
   }
   if (!motionEnabled()) {
     return gsap.set(items, { autoAlpha: 1, y: 0, scale: 1, clearProps: "transform" })
@@ -84,15 +84,6 @@ export function staggerIn(
 }
 
 export type CardLeaveVariant = "dislike" | "want-watch" | "default"
-
-const CARD_LEAVE_VARIANTS: Record<
-  CardLeaveVariant,
-  { x: number; y: number; scale: number; rotation: number; duration: number; ease: string }
-> = {
-  dislike: { x: 12, y: 6, scale: 0.92, rotation: 2, duration: 0.3, ease: "power2.in" },
-  "want-watch": { x: 0, y: -10, scale: 0.94, rotation: 0, duration: 0.28, ease: "power2.inOut" },
-  default: { x: 8, y: -4, scale: 0.93, rotation: 0, duration: 0.24, ease: "power2.in" },
-}
 
 export function captureCardRects(
   container: HTMLElement,
@@ -135,7 +126,7 @@ export function animateGridReflow(
     timeline.fromTo(
       el,
       { x: dx, y: dy },
-      { x: 0, y: 0, duration: 0.32, ease: "power2.out", clearProps: "transform", ...BASE },
+      { x: 0, y: 0, duration: 0.24, ease: "power3.out", clearProps: "transform", ...BASE },
       0,
     )
   })
@@ -143,36 +134,6 @@ export function animateGridReflow(
   if (!hasTween) {
     onComplete?.()
   }
-}
-
-export function prepareCardLeave(el: HTMLElement): void {
-  el.classList.add("video-card--leaving")
-  el.style.willChange = "transform, opacity"
-  el.style.pointerEvents = "none"
-}
-
-export function cardLeave(
-  el: Element,
-  done: () => void,
-  variant: CardLeaveVariant = "default",
-): void {
-  if (!motionEnabled()) {
-    done()
-    return
-  }
-  const htmlEl = el as HTMLElement
-  const config = CARD_LEAVE_VARIANTS[variant]
-  gsap.to(htmlEl, {
-    autoAlpha: 0,
-    x: config.x,
-    y: config.y,
-    scale: config.scale,
-    rotation: config.rotation,
-    duration: config.duration,
-    ease: config.ease,
-    onComplete: done,
-    ...BASE,
-  })
 }
 
 export function resetCardLeaveStyles(el: HTMLElement): void {

@@ -8,10 +8,35 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.bilibili.com/*",
+    "https://api.deepseek.com/*",
+    "https://api.bgm.tv/*",
+    "http://127.0.0.1:8765/*"
+  ],
+  "background": {
+    "service_worker": "dist/background/index.js",
+    "type": "module"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dist/assets/fonts/*"
+      ],
+      "matches": [
+        "https://t.bilibili.com/*",
+        "https://www.bilibili.com/*"
+      ]
+    }
+  ],
   "content_scripts": [
     {
       "matches": [
-        "https://t.bilibili.com/*"
+        "https://t.bilibili.com/*",
+        "https://www.bilibili.com/*"
       ],
       "js": [
         "dist/content/content.js"
@@ -25,7 +50,8 @@
     },
     {
       "matches": [
-        "https://t.bilibili.com/*"
+        "https://t.bilibili.com/*",
+        "https://www.bilibili.com/*"
       ],
       "js": [
         "dist/inject/index.js"

@@ -17,11 +17,15 @@ export default defineConfig({
       input: {
         content: path.resolve(__dirname, "src/content/main.ts"),
         inject: path.resolve(__dirname, "src/inject/index.js"),
+        background: path.resolve(__dirname, "src/background/index.ts"),
       },
       output: {
         entryFileNames(chunkInfo) {
           if (chunkInfo.name === "inject") {
             return "inject/index.js"
+          }
+          if (chunkInfo.name === "background") {
+            return "background/index.js"
           }
           return "content/[name].js"
         },

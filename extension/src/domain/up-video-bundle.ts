@@ -11,7 +11,7 @@ export interface SpaceArchiveInput {
   publishAt: number
 }
 
-const RECENT_RANK_LABELS = ["最新发布", "次新发布", "第三新发布", "第四新发布", "第五新发布"]
+const RECENT_RANK_LABELS = ["最新发布", "次新发布", "第三新发布", "第四新发布"]
 
 function toVideo(archive: SpaceArchiveInput, selectionLabel: string): UpSpaceVideo {
   return {
@@ -31,8 +31,12 @@ function videoKey(archive: SpaceArchiveInput): string {
   return archive.bvid || archive.aid
 }
 
-export function buildUpVideoBundle(recentArchives: SpaceArchiveInput[]): UpSpaceVideo[] {
-  if (recentArchives.length === 0) {
+export function buildUpVideoBundle(
+  recentArchives: SpaceArchiveInput[],
+  mostPlayedArchive?: SpaceArchiveInput,
+  wantedArchive?: SpaceArchiveInput,
+): UpSpaceVideo[] {
+  if (recentArchives.length === 0 && !mostPlayedArchive && !wantedArchive) {
     return []
   }
 
@@ -51,8 +55,10 @@ export function buildUpVideoBundle(recentArchives: SpaceArchiveInput[]): UpSpace
     result.push(toVideo(archive, selectionLabel))
   }
 
+  append(wantedArchive, "我想看的")
+
   const sortedByPlay = [...recentArchives].sort((left, right) => right.playCount - left.playCount)
-  append(sortedByPlay[0], "近期播放最高")
+  append(mostPlayedArchive ?? sortedByPlay[0], "播放最高")
 
   const sortedByPublish = [...recentArchives].sort((left, right) => right.publishAt - left.publishAt)
   for (let index = 0; index < RECENT_RANK_LABELS.length && result.length < 5; index += 1) {
