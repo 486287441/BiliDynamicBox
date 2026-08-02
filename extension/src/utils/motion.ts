@@ -10,14 +10,14 @@ export function fadeSlideIn(
   target: gsap.TweenTarget,
   options?: { y?: number; duration?: number; delay?: number; onComplete?: () => void },
 ): gsap.core.Tween {
-  const { y = 10, duration = 0.22, delay = 0, onComplete } = options ?? {}
+  const { y = 8, duration = 0.28, delay = 0, onComplete } = options ?? {}
   if (!motionEnabled()) {
     return gsap.set(target, { autoAlpha: 1, y: 0, scale: 1, clearProps: "transform" })
   }
   return gsap.fromTo(
     target,
-    { autoAlpha: 0, y, scale: 0.98 },
-    { autoAlpha: 1, y: 0, scale: 1, duration, delay, ease: "power2.out", onComplete, ...BASE },
+    { autoAlpha: 0, y, scale: 0.99 },
+    { autoAlpha: 1, y: 0, scale: 1, duration, delay, ease: "expo.out", onComplete, ...BASE },
   )
 }
 
@@ -25,26 +25,26 @@ export function fadeSlideOut(
   target: gsap.TweenTarget,
   options?: { y?: number; duration?: number; onComplete?: () => void },
 ): gsap.core.Tween {
-  const { y = -8, duration = 0.16, onComplete } = options ?? {}
+  const { y = -4, duration = 0.16, onComplete } = options ?? {}
   if (!motionEnabled()) {
     onComplete?.()
     return gsap.set(target, { autoAlpha: 0 })
   }
-  return gsap.to(target, { autoAlpha: 0, y, scale: 0.96, duration, ease: "power2.in", onComplete, ...BASE })
+  return gsap.to(target, { autoAlpha: 0, y, scale: 0.99, duration, ease: "power2.in", onComplete, ...BASE })
 }
 
 export function scaleFadeIn(
   target: gsap.TweenTarget,
   options?: { duration?: number; onComplete?: () => void },
 ): gsap.core.Tween {
-  const { duration = 0.2, onComplete } = options ?? {}
+  const { duration = 0.28, onComplete } = options ?? {}
   if (!motionEnabled()) {
     return gsap.set(target, { autoAlpha: 1, scale: 1, clearProps: "transform" })
   }
   return gsap.fromTo(
     target,
-    { autoAlpha: 0, scale: 0.96 },
-    { autoAlpha: 1, scale: 1, duration, ease: "power2.out", onComplete, ...BASE },
+    { autoAlpha: 0, scale: 0.985 },
+    { autoAlpha: 1, scale: 1, duration, ease: "expo.out", onComplete, ...BASE },
   )
 }
 
@@ -57,14 +57,14 @@ export function scaleFadeOut(
     onComplete?.()
     return gsap.set(target, { autoAlpha: 0 })
   }
-  return gsap.to(target, { autoAlpha: 0, scale: 0.96, duration, ease: "power2.in", onComplete, ...BASE })
+  return gsap.to(target, { autoAlpha: 0, scale: 0.985, duration, ease: "power2.in", onComplete, ...BASE })
 }
 
 export function staggerIn(
   targets: gsap.TweenTarget,
   options?: { y?: number; stagger?: number; duration?: number; maxItems?: number },
 ): gsap.core.Tween {
-  const { y = 10, stagger = 0.03, duration = 0.24, maxItems = 10 } = options ?? {}
+  const { y = 8, stagger = 0.025, duration = 0.28, maxItems = 8 } = options ?? {}
   const items = gsap.utils.toArray(targets)
   if (items.length === 0) {
     return gsap.set([], {})
@@ -78,8 +78,8 @@ export function staggerIn(
   }
   return gsap.fromTo(
     animated,
-    { autoAlpha: 0, y, scale: 0.98 },
-    { autoAlpha: 1, y: 0, scale: 1, duration, stagger, ease: "power2.out", ...BASE },
+    { autoAlpha: 0, y, scale: 0.99 },
+    { autoAlpha: 1, y: 0, scale: 1, duration, stagger, ease: "expo.out", ...BASE },
   )
 }
 
@@ -126,7 +126,7 @@ export function animateGridReflow(
     timeline.fromTo(
       el,
       { x: dx, y: dy },
-      { x: 0, y: 0, duration: 0.24, ease: "power3.out", clearProps: "transform", ...BASE },
+      { x: 0, y: 0, duration: 0.3, ease: "expo.out", clearProps: "transform", ...BASE },
       0,
     )
   })
@@ -147,11 +147,7 @@ export function pulseActive(target: gsap.TweenTarget): void {
   if (!motionEnabled()) {
     return
   }
-  gsap.fromTo(
-    target,
-    { scale: 1 },
-    { scale: 1.03, duration: 0.1, yoyo: true, repeat: 1, ease: "power1.out", ...BASE },
-  )
+  gsap.fromTo(target, { scale: 0.985 }, { scale: 1, duration: 0.16, ease: "expo.out", ...BASE })
 }
 
 export function maskFadeIn(

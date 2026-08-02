@@ -10,6 +10,7 @@
       :search-query="searchQuery"
       :search-scope="searchScope"
       :min-duration-minutes="minDurationMinutes"
+      :publish-after-date="publishAfterDate"
       :hide-want-watch="hideWantWatch"
       :open-video-on-want-watch="openVideoOnWantWatch"
       :category-filter="categoryFilter"
@@ -23,6 +24,7 @@
       @update:search-query="searchQuery = $event"
       @update:search-scope="searchScope = $event"
       @update:min-duration-minutes="onMinDurationMinutesUpdate"
+      @update:publish-after-date="onPublishAfterDateUpdate"
       @update:category-filter="onCategoryFilterUpdate"
       @save-ai-key="onSaveAiKey"
     />
@@ -91,6 +93,7 @@ import TrashModal from "../components/TrashModal.vue"
 import type { ViewMode } from "../domain/view-mode"
 import type { ContentCategoryFilter } from "../domain/content-category"
 import { getDateGroupKey } from "../domain/group-by-date"
+import { normalizePublishAfterDate } from "../domain/publish-date-filter"
 import type { DateGroup, VideoDynamicCard } from "../domain/types"
 import InboxGroup from "../components/InboxGroup.vue"
 import { useDecisionStore } from "../store/decision"
@@ -111,6 +114,7 @@ const props = withDefaults(defineProps<{ embedded?: boolean; feedVisible?: boole
 const emit = defineEmits<{
   (event: "settings-change", settings: {
     minDurationMinutes: string
+    publishAfterDate: string
     hideWantWatch: boolean
     openVideoOnWantWatch: boolean
   }): void
@@ -125,6 +129,7 @@ const searchQuery = ref("")
 const searchScope = ref<SearchScope>("dynamics")
 const viewMode = ref<ViewMode>(persistedState.viewMode)
 const minDurationMinutes = ref(persistedState.minDurationMinutes)
+const publishAfterDate = ref(persistedState.publishAfterDate)
 const hideWantWatch = ref(persistedState.hideWantWatch)
 const openVideoOnWantWatch = ref(persistedState.openVideoOnWantWatch)
 const categoryFilter = ref<ContentCategoryFilter>("all")
@@ -355,9 +360,22 @@ function onMinDurationMinutesUpdate(value: string): void {
   void inbox.fillAfterHide(getScrollRoot())
 }
 
+function onPublishAfterDateUpdate(value: string): void {
+  const normalized = normalizePublishAfterDate(value)
+  if (value.trim() && !normalized) {
+    showToast("请选择有效的发布日期", "error")
+    return
+  }
+  publishAfterDate.value = normalized
+  writePersistedState({ publishAfterDate: normalized })
+  emitSettingsChange()
+  showToast(normalized ? `已只显示 ${normalized} 当天及之后的视频` : "已清除日期筛选")
+}
+
 function emitSettingsChange(): void {
   emit("settings-change", {
     minDurationMinutes: minDurationMinutes.value,
+    publishAfterDate: publishAfterDate.value,
     hideWantWatch: hideWantWatch.value,
     openVideoOnWantWatch: openVideoOnWantWatch.value,
   })

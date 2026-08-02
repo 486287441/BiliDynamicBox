@@ -1,6 +1,7 @@
 import type { VideoDynamicCard } from "../domain/types"
 import type { AnimeTrackingItem, AnimeTrackingKind } from "../domain/anime-tracking"
 import type { ViewMode } from "../domain/view-mode"
+import { normalizePublishAfterDate } from "../domain/publish-date-filter"
 
 const LEGACY_DISLIKED_KEY = "bewly:disliked-dynamic-ids"
 const STORAGE_KEY = "bewly:inbox-state"
@@ -17,6 +18,7 @@ export interface PersistedInboxState {
   trashItems: TrashItem[]
   upDislikeCounts: Record<string, number>
   minDurationMinutes: string
+  publishAfterDate: string
   wantWatchDynamicIds: string[]
   wantWatchCards: VideoDynamicCard[]
   hideWantWatch: boolean
@@ -35,6 +37,7 @@ const EMPTY_STATE: PersistedInboxState = {
   trashItems: [],
   upDislikeCounts: {},
   minDurationMinutes: "",
+  publishAfterDate: "",
   wantWatchDynamicIds: [],
   wantWatchCards: [],
   hideWantWatch: false,
@@ -199,6 +202,7 @@ function normalizeState(value: unknown): PersistedInboxState {
     trashItems: normalizeTrashItems(state.trashItems),
     upDislikeCounts: normalizeUpCounts(state.upDislikeCounts),
     minDurationMinutes: normalizeMinDurationMinutes(state.minDurationMinutes),
+    publishAfterDate: normalizePublishAfterDate(state.publishAfterDate),
     wantWatchDynamicIds: normalizeIdList(state.wantWatchDynamicIds),
     wantWatchCards: normalizeCards(state.wantWatchCards),
     hideWantWatch: state.hideWantWatch === true,

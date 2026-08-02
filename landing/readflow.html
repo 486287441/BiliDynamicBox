@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<!-- ==================================================================
+     LANDING PAGE · 中文 · parchment design system
+     Screen-first product landing page with interactive gallery
+     Sections: Hero · Gallery · Features · Principles · Pricing · FAQ · Footer
+     No PDF output, designed for browser delivery via Vercel / Netlify / static host
+     ================================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>阅流 ReadFlow · 让 AI 先看一遍</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="阅流把 B 站关注动态变成内容收件箱，让你在想看、帮我读与不想看之间做出决定，再由本地 AI 阅读引擎完成转录、整理与全文判断。">
+<meta property="og:title" content="阅流 ReadFlow · 让 AI 先看一遍">
+<meta property="og:description" content="先判断什么值得消费，再选择看、读或跳过。">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="阅流 ReadFlow · 让 AI 先看一遍">
+<meta name="twitter:description" content="先判断什么值得消费，再选择看、读或跳过。">
+<meta property="og:locale" content="zh_CN">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "阅流 ReadFlow",
+  "applicationCategory": "ProductivityApplication",
+  "operatingSystem": "Windows, Chrome, Edge",
+  "description": "把视频信息流变成可筛选、可阅读、可追问的个人内容收件箱。",
+  "inLanguage": "zh-CN"
+}
+</script>
+<style>
+/* ========== Tokens ========== */
+
+@font-face {
+  font-family: "TsangerJinKai02";
+  src: url("https://cdn.jsdelivr.net/gh/AlfredoSequeworthy/TsangerJinKai02@main/TsangerJinKai02-W04.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "TsangerJinKai02";
+  src: url("https://cdn.jsdelivr.net/gh/AlfredoSequeworthy/TsangerJinKai02@main/TsangerJinKai02-W05.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --parchment:    #f5f4ed;
+  --ivory:        #faf9f5;
+  --warm-sand:    #e8e6dc;
+
+  --brand:        #1B365D;
+  --brand-light:  #2D5A8A;
+  --brand-tint:   #EEF2F7;
+
+  --near-black:   #141413;
+  --dark-warm:    #3d3d3a;
+  --olive:        #504e49;
+  --stone:        #6b6a64;
+
+  --border:       #e8e6dc;
+  --border-soft:  #e5e3d8;
+  --line:         #d8d5c8;
+
+  --serif: "TsangerJinKai02", "Source Han Serif SC",
+           "Noto Serif CJK SC", "Songti SC", "STSong",
+           Georgia, serif;
+  --sans:  var(--serif);
+  --mono:  "JetBrains Mono", "SF Mono", Consolas,
+           "TsangerJinKai02", "Source Han Serif SC",
+           monospace;
+  --latin-ui: "PingFang SC", system-ui, -apple-system, sans-serif;
+
+  --shot-bg: #141318;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--parchment);
+  color: var(--near-black);
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.58;
+  letter-spacing: 0.4px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--brand);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+a:hover { color: var(--brand-light); }
+
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 88px 64px 120px;
+}
+
+/* ========== Buttons ========== */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--brand);
+  color: var(--ivory);
+  font-family: var(--latin-ui);
+  font-weight: 500;
+  font-size: 15px;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.2px;
+  padding: 13px 28px;
+  border-radius: 999px;
+  border: 1.5px solid var(--brand);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  cursor: pointer;
+  min-width: 158px;
+}
+.btn-primary:hover {
+  background: var(--brand-light);
+  border-color: var(--brand-light);
+  color: var(--ivory);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--latin-ui);
+  font-weight: 500;
+  font-size: 15px;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--brand);
+  background: transparent;
+  padding: 13px 28px;
+  border-radius: 999px;
+  border: 1.5px solid var(--brand);
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+  cursor: pointer;
+  min-width: 158px;
+}
+.btn-ghost:hover {
+  background: var(--brand-tint);
+  color: var(--brand);
+  transform: translateY(-1px);
+}
+
+/* ========== Hero ========== */
+
+.hero {
+  padding-bottom: 48px;
+  border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 80px;
+}
+.eyebrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--latin-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--stone);
+  margin: 0 0 28px;
+}
+.version-link {
+  color: var(--brand);
+  font-weight: 600;
+}
+.version-link:hover { color: var(--brand-light); }
+
+.hero-links {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.hero-links a {
+  color: var(--stone);
+  display: flex;
+  align-items: center;
+}
+.hero-links a:hover { color: var(--dark-warm); }
+
+.hero h1 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 88px;
+  line-height: 1.05;
+  letter-spacing: 0;
+  margin: 0 0 18px;
+  color: var(--near-black);
+  opacity: 0;
+  transform: translateY(10px);
+  filter: blur(6px);
+  animation: hero-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
+}
+@keyframes hero-rise {
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.hero .tagline {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.55;
+  letter-spacing: 0.4px;
+  color: var(--olive);
+  margin: 0 0 28px;
+  max-width: 820px;
+}
+
+.hero-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 0 0 32px;
+  font-family: var(--latin-ui);
+  font-size: 13px;
+  color: var(--stone);
+}
+.hero-tokens span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.hero-tokens b {
+  color: var(--dark-warm);
+  font-weight: 500;
+}
+
+.hero-cta {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 4px;
+}
+
+/* ========== Section primitives ========== */
+
+section { margin-bottom: 72px; }
+.section-head { margin-bottom: 24px; }
+.section-num {
+  font-family: var(--latin-ui);
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--brand);
+  letter-spacing: 0.4px;
+  margin: 0 0 6px;
+}
+.section-title {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 34px;
+  line-height: 1.2;
+  color: var(--near-black);
+  margin: 0;
+  letter-spacing: 1.2px;
+}
+.section-lede {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.55;
+  letter-spacing: 0.4px;
+  color: var(--olive);
+  margin: 14px 0 0;
+}
+.section-versus {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--stone);
+  margin: 14px 0 0;
+  letter-spacing: 0.1px;
+  line-height: 1.55;
+}
+.section-versus b {
+  color: var(--brand);
+  font-weight: 500;
+}
+
+/* ========== Gallery (interactive screenshot carousel) ========== */
+
+.gallery {
+  --enter-from-x: 44px;
+  --exit-to-x: -34px;
+  --sweep-angle: 100deg;
+  --sweep-from: -45%;
+  --sweep-to: 65%;
+  --caption-shift: -2px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 24px;
+  align-items: baseline;
+  margin: 0;
+  padding: 0;
+}
+.gallery[data-direction="prev"] {
+  --enter-from-x: -44px;
+  --exit-to-x: 34px;
+  --sweep-angle: 260deg;
+  --sweep-from: 65%;
+  --sweep-to: -45%;
+  --caption-shift: 2px;
+}
+
+.gallery-frame {
+  grid-column: 1 / -1;
+  position: relative;
+  background: var(--shot-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(20, 19, 19, 0.10);
+  cursor: ew-resize;
+}
+.gallery-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(
+    var(--sweep-angle),
+    rgba(245, 244, 237, 0) 32%,
+    rgba(245, 244, 237, 0.16) 50%,
+    rgba(245, 244, 237, 0) 68%
+  );
+  opacity: 0;
+  transform: translate3d(var(--sweep-from), 0, 0);
+  transition:
+    opacity 540ms ease,
+    transform 920ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.gallery.is-switching .gallery-frame::after {
+  opacity: 1;
+  transform: translate3d(var(--sweep-to), 0, 0);
+}
+.gallery-panel {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 1;
+  transform: translate3d(var(--enter-from-x), 0, 0) scale(0.985);
+  transition:
+    opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 880ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 620ms;
+  will-change: opacity, transform;
+}
+.gallery-panel.is-active {
+  opacity: 1;
+  visibility: visible;
+  position: relative;
+  z-index: 2;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+.gallery-panel.was-active {
+  opacity: 0;
+  visibility: visible;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  transform: translate3d(var(--exit-to-x), 0, 0) scale(0.985);
+  pointer-events: none;
+}
+.gallery-panel img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gallery-caption {
+  grid-column: 1;
+  grid-row: 2;
+  min-height: 48px;
+  padding: 12px 2px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  transition: opacity 420ms ease, transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.gallery.is-switching .gallery-caption {
+  opacity: 0.72;
+  transform: translate3d(var(--caption-shift), 0, 0);
+}
+.gallery-caption .title {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--near-black);
+  margin: 0;
+  letter-spacing: 0.1px;
+  flex: 0 0 auto;
+}
+.gallery-caption .line {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--olive);
+  font-style: italic;
+  letter-spacing: 0.4px;
+  margin: 0;
+}
+
+.gallery-tabs {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+.gallery-tabs button {
+  appearance: none;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--olive);
+  font-family: var(--latin-ui);
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.gallery-tabs button:hover {
+  color: var(--brand);
+  border-color: var(--line);
+}
+.gallery-tabs button.is-active {
+  color: var(--brand);
+  background: var(--brand-tint);
+  border-color: var(--line);
+}
+
+/* ========== Features (two-column definition list) ========== */
+
+.features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border-soft);
+}
+.features li {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  column-gap: 36px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--border-soft);
+  align-items: baseline;
+}
+.features .name {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--brand);
+  margin: 0;
+  line-height: 1.25;
+}
+.features .name small {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--olive);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.5;
+  letter-spacing: 0.1px;
+}
+.features .what {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.55;
+  letter-spacing: 0.4px;
+  color: var(--dark-warm);
+  margin: 0;
+}
+
+/* ========== Principles (2-column numbered grid) ========== */
+
+.principles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--border-soft);
+}
+.principles li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 8px;
+  padding: 22px 28px 22px 0;
+  border-bottom: 1px solid var(--border-soft);
+  align-items: baseline;
+}
+.principles li:nth-child(odd) {
+  padding-right: 32px;
+  border-right: 1px solid var(--border-soft);
+}
+.principles li:nth-child(even) { padding-left: 32px; }
+.principles li:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  border-right: none;
+  padding-right: 0;
+}
+.principles .n {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--brand);
+  line-height: 1;
+}
+.principles .body b {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--near-black);
+  margin-bottom: 4px;
+  letter-spacing: 0.1px;
+}
+.principles .body span {
+  font-size: 13px;
+  color: var(--olive);
+  line-height: 1.5;
+  letter-spacing: 0.4px;
+  font-weight: 400;
+}
+
+/* ========== Manifesto (brand philosophy paragraph) ========== */
+
+.manifesto {
+  font-family: var(--serif);
+  font-size: 20px;
+  line-height: 1.55;
+  letter-spacing: 0.05em;
+  color: var(--near-black);
+  margin: 0 0 28px;
+  font-weight: 400;
+}
+.manifesto em {
+  color: var(--brand);
+  font-style: normal;
+}
+
+/* ========== Code block (install instructions) ========== */
+
+pre.code {
+  background: var(--ivory);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px 22px;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--near-black);
+  overflow-x: auto;
+  margin: 0;
+}
+pre.code .c { color: var(--stone); }
+pre.code .k { color: var(--brand); }
+
+/* ========== Metrics (key numbers) ========== */
+
+.metrics {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.metric-value {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 36px;
+  line-height: 1;
+  color: var(--near-black);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.metric-label {
+  font-family: var(--latin-ui);
+  font-size: 13px;
+  color: var(--stone);
+}
+
+/* ========== Demo card grid (static showcase) ========== */
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+.demo-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ivory);
+  transition: box-shadow 0.2s;
+}
+.demo-card:hover {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.05);
+}
+.demo-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-bottom: 1px solid var(--border);
+}
+.demo-card .demo-title {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--near-black);
+  margin: 12px 14px 4px;
+}
+.demo-card .demo-desc {
+  font-size: 12px;
+  color: var(--olive);
+  margin: 0 14px 14px;
+  line-height: 1.4;
+}
+
+/* ========== Pricing ========== */
+
+.price-card {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 72px 32px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.price-amount {
+  font-family: Georgia, Charter, serif;
+  font-weight: 500;
+  font-size: 112px;
+  line-height: 1;
+  color: var(--near-black);
+  margin: 0 0 24px;
+  letter-spacing: 0;
+}
+.price-vs {
+  font-family: var(--serif);
+  font-size: 17px;
+  color: var(--dark-warm);
+  margin: 0 0 40px;
+  line-height: 1.55;
+  max-width: 580px;
+}
+.price-vs s {
+  color: var(--stone);
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--stone);
+  margin: 0 2px;
+}
+.price-vs .hl {
+  color: var(--brand);
+  font-weight: 500;
+}
+.price-card .btn-primary {
+  min-width: 280px;
+  padding: 15px 28px;
+  font-size: 15.5px;
+  justify-content: center;
+}
+.price-trial {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--stone);
+  margin: 16px 0 0;
+}
+.price-trial a {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.price-trial a:hover { color: var(--brand-light); }
+.price-terms {
+  font-family: var(--serif);
+  font-size: 13.5px;
+  color: var(--olive);
+  margin: 28px 0 0;
+  max-width: 640px;
+  line-height: 1.5;
+  text-align: center;
+}
+.price-terms .sep {
+  color: var(--line);
+  margin: 0 4px;
+}
+
+/* ========== FAQ ========== */
+
+.faq-pair { margin-bottom: 24px; }
+.faq-pair:last-child { margin-bottom: 0; }
+.faq dt {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--near-black);
+  margin: 0 0 6px;
+  letter-spacing: 0.1px;
+}
+.faq dd {
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: 0.4px;
+  color: var(--olive);
+  margin: 0;
+}
+.faq code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--brand);
+  background: var(--brand-tint);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.faq-tail {
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--stone);
+  margin: 28px 0 0;
+}
+.faq-tail a { color: var(--brand); }
+
+/* ========== Footer ========== */
+
+footer.foot {
+  margin-top: 56px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 48px;
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--stone);
+}
+.foot .mark {
+  display: grid;
+  grid-template-columns: 56px auto;
+  grid-template-rows: auto auto;
+  column-gap: 14px;
+  align-items: start;
+}
+.foot .mark img {
+  grid-row: 1 / span 2;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.foot .mark .wm-name {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 28px;
+  color: var(--near-black);
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+.foot .mark .wm-line {
+  font-size: 13px;
+  color: var(--olive);
+  margin-top: 2px;
+}
+.foot .colophon {
+  text-align: right;
+  max-width: 480px;
+}
+.foot .colophon .links {
+  font-family: var(--latin-ui);
+  color: var(--dark-warm);
+  margin-bottom: 16px;
+  line-height: 1.55;
+}
+.foot .colophon .links a {
+  color: var(--dark-warm);
+}
+.foot .colophon .links a:hover { color: var(--brand); }
+.foot .colophon .ethos {
+  color: var(--olive);
+  font-style: italic;
+  line-height: 1.55;
+  max-width: 360px;
+  margin-left: auto;
+}
+
+/* ========== Print ========== */
+
+@media print {
+  body { background: #f5f4ed; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { padding: 0; max-width: 100%; }
+  section { page-break-inside: auto; margin-bottom: 36px; }
+  .hero, .section-head, .demo-card, .price-card, blockquote, pre { break-inside: avoid; page-break-inside: avoid; }
+  .gallery-frame::after { display: none; }
+}
+
+/* ========== Responsive ========== */
+
+@media (max-width: 880px) {
+  .page { padding: 64px 32px 80px; }
+  .hero { margin-bottom: 56px; padding-bottom: 32px; }
+  .hero h1 { font-size: 56px; letter-spacing: 0; }
+  .hero .tagline { font-size: 17px; }
+
+  section { margin-bottom: 56px; }
+  .section-title { font-size: 30px; letter-spacing: 0.8px; }
+
+  .gallery { grid-template-columns: 1fr; }
+  .gallery-caption,
+  .gallery-tabs { grid-column: 1; grid-row: auto; }
+  .gallery-tabs { gap: 6px; justify-content: flex-start; }
+  .gallery-tabs button { padding: 8px 10px; }
+
+  .features li {
+    grid-template-columns: 1fr;
+    row-gap: 8px;
+    padding: 22px 0;
+  }
+
+  .principles { grid-template-columns: 1fr; }
+  .principles li:nth-child(odd) { border-right: none; padding-right: 0; }
+  .principles li:nth-child(even) { padding-left: 0; }
+
+  .price-card { padding: 48px 16px 40px; }
+  .price-amount { font-size: 72px; letter-spacing: 0; margin-bottom: 18px; }
+  .price-vs { font-size: 15px; margin-bottom: 32px; }
+  .price-card .btn-primary { min-width: 240px; }
+  .price-terms { font-size: 12.5px; line-height: 1.5; margin-top: 24px; }
+
+  .foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+    padding-top: 32px;
+    margin-top: 48px;
+  }
+  .foot .colophon { text-align: left; max-width: 100%; }
+  .foot .colophon .ethos { margin-left: 0; }
+  .foot { align-items: flex-start; }
+}
+
+@media (max-width: 480px) {
+  .page { padding: 48px 16px 64px; }
+  .hero h1 { font-size: 48px; }
+  .hero .tagline { font-size: 16px; }
+  .hero-cta { flex-direction: row; align-items: center; gap: 12px; }
+  .btn-primary,
+  .btn-ghost { min-width: 0; flex: 0 0 auto; padding: 13px 16px; justify-content: center; }
+  .gallery-caption {
+    min-height: auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero h1 { animation: none; opacity: 1; transform: none; filter: none; }
+  .gallery-frame::after { display: none; }
+  .gallery-panel,
+  .gallery-caption { transition: none; transform: none; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <!-- ============ Hero ============ -->
+  <header class="hero">
+    <div class="eyebrow">
+      <span>个人信息阅读工具 · 本地优先</span>
+    </div>
+
+    <h1>阅流 <wbr>ReadFlow</h1>
+
+    <p class="tagline">让 AI 先看一遍，你再决定要不要看。</p>
+
+    <div class="hero-tokens">
+      <span><b>收件箱式筛选</b></span>
+      <span><b>本地阅读引擎</b></span>
+      <span><b>基于全文判断</b></span>
+    </div>
+
+    <div class="hero-cta">
+      <a class="btn-ghost" href="#workflow">看看它如何工作</a>
+      <a class="btn-primary" href="#workflow">了解工作方式</a>
+    </div>
+  </header>
+
+  <!-- ============ 01 · Features ============ -->
+  <section id="workflow">
+    <div class="section-head">
+      <p class="section-num">01 · 三个决定</p>
+      <h2 class="section-title">想看、帮我读、不想看</h2>
+      <p class="section-lede">三个动作覆盖一次完整的内容判断。无需先打开视频，也无需把每个感兴趣的标题都塞进稍后再看。</p>
+    </div>
+
+    <ol class="features">
+      <li>
+        <h3 class="name">想看<small>画面值得亲自观看</small></h3>
+        <p class="what">把视频加入 B 站稍后再看。教程、演示、音乐和视觉表达保留原来的观看方式，阅流不强迫所有内容变成文字。</p>
+      </li>
+      <li>
+        <h3 class="name">帮我读<small>把时间交给阅读引擎</small></h3>
+        <p class="what">视频链接通过剪贴板交给本地 Transcriber。后台完成音频提取、语音识别与结构化整理，卡片只保留「正在转录」与「已完成转录」两个状态。</p>
+      </li>
+      <li>
+        <h3 class="name">不想看<small>跳过也是一种判断</small></h3>
+        <p class="what">当前内容离开收件箱；连续多次跳过同一位创作者时，阅流会提醒你重新考虑关注关系。信息流从此可以被整理，而不只是被承受。</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ 02 · Principles ============ -->
+  <section id="deepseek">
+    <div class="section-head">
+      <p class="section-num">02 · DeepSeek 阅读引擎</p>
+      <h2 class="section-title">AI 先读，再帮你判断</h2>
+      <p class="section-lede">标题只能做低成本预判。真正的推荐结论来自完整文稿，并且必须说明依据。</p>
+    </div>
+
+    <ol class="principles">
+      <li>
+        <span class="n">01</span>
+        <div class="body"><b>转录前粗筛</b><span>根据标题识别知识、娱乐与内容类型，帮助收件箱快速分流；结论只作为预判，不冒充全文分析。</span></div>
+      </li>
+      <li>
+        <span class="n">02</span>
+        <div class="body"><b>全文消费建议</b><span>结合信息密度、画面依赖、标题兑现度与论据质量，建议完整看、选段看、读文稿或跳过。</span></div>
+      </li>
+      <li>
+        <span class="n">03</span>
+        <div class="body"><b>推荐必须有理由</b><span>分数之外保留观看建议、打分依据和推荐理由。AI 的判断应当可读、可质疑，也可以被用户推翻。</span></div>
+      </li>
+      <li>
+        <span class="n">04</span>
+        <div class="body"><b>围绕原文继续追问</b><span>读完结论后继续询问证据、反方观点或难懂段落。回答建立在整理后的文章之上，而不是脱离材料自由发挥。</span></div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ 03 · Commitments ============ -->
+  <section id="principles">
+    <div class="section-head">
+      <p class="section-num">03 · 设计宗旨</p>
+      <h2 class="section-title">注意力，由你决定</h2>
+    </div>
+
+    <p class="manifesto">多数平台优化的是你<em>继续观看的概率</em>。阅流在意的是：看完之后，你是否觉得这段时间花得值得。</p>
+    <ol class="principles">
+      <li><span class="n">01</span><div class="body"><b>先判断，再消费</b><span>不再用视频的前几分钟支付试错成本。先了解结构和价值，再决定投入多少注意力。</span></div></li>
+      <li><span class="n">02</span><div class="body"><b>看、读、跳过都正确</b><span>阅流不追求让你处理更多视频，只帮助你为不同内容选择更合适的方式。</span></div></li>
+      <li><span class="n">03</span><div class="body"><b>本地优先</b><span>队列、历史、转录内容和设置留在自己的设备上；AI Key 由用户掌握。</span></div></li>
+      <li><span class="n">04</span><div class="body"><b>结论回到来源</b><span>文章保留原视频入口，推荐保留判断依据。压缩时间，不切断内容与来源的关系。</span></div></li>
+    </ol>
+  </section>
+
+  <!-- ============ 04 · FAQ ============ -->
+  <section id="faq">
+    <div class="section-head">
+      <p class="section-num">04 · 常见问题</p>
+      <h2 class="section-title">新用户最先想知道的事</h2>
+    </div>
+
+    <dl class="faq">
+      <div class="faq-pair">
+        <dt>阅流和普通 AI 视频总结有什么不同？</dt>
+        <dd>总结工具从一个已经选中的视频开始；阅流从关注流开始，先帮你决定什么值得看、什么适合读、什么可以跳过。</dd>
+      </div>
+      <div class="faq-pair">
+        <dt>它会取代看视频吗？</dt>
+        <dd>不会。画面重要的内容仍然应该看原视频；访谈、新闻分析和知识讲解往往更适合先读，再决定是否深入观看。</dd>
+      </div>
+      <div class="faq-pair">
+        <dt>点击「帮我读」之后发生什么？</dt>
+        <dd>阅流复制视频链接，本地 Transcriber 自动接收并排队。完成后，原卡片会显示转录结果与基于全文的推荐判断。</dd>
+      </div>
+      <div class="faq-pair">
+        <dt>DeepSeek 根据什么给出推荐？</dt>
+        <dd>转录前只根据标题粗筛；转录后读取完整文稿，再结合信息密度、画面依赖、标题兑现度和论据质量给出建议。</dd>
+      </div>
+      <div class="faq-pair">
+        <dt>我的记录会上传到一个公共账户吗？</dt>
+        <dd>当前产品采用本地优先设计。扩展状态、处理队列和文章历史主要保存在用户自己的浏览器与电脑中。</dd>
+      </div>
+      <div class="faq-pair">
+        <dt>目前支持哪些内容来源？</dt>
+        <dd>收件箱当前面向 B 站动态；阅读引擎可以处理 B 站以及 yt-dlp 能识别的 YouTube、抖音等视频链接。</dd>
+      </div>
+    </dl>
+  </section>
+
+  <!-- ============ Footer ============ -->
+  <footer class="foot">
+    <div class="mark" style="grid-template-columns:auto">
+      <span class="wm-name">阅流 ReadFlow</span>
+      <span class="wm-line">个人信息阅读工具</span>
+    </div>
+    <div class="colophon">
+      <div class="links">
+        <a href="#workflow">工作方式</a> &middot;
+        <a href="#deepseek">DeepSeek</a> &middot;
+        <a href="#principles">设计宗旨</a> &middot;
+        <a href="#faq">常见问题</a>
+      </div>
+      <p class="ethos">值得的，才花时间。</p>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+(function(){
+  var gallery = document.querySelector('[data-gallery]');
+  if (!gallery) return;
+  var frame = gallery.querySelector('.gallery-frame');
+  var panels = Array.prototype.slice.call(gallery.querySelectorAll('.gallery-panel'));
+  var tabs = Array.prototype.slice.call(gallery.querySelectorAll('.gallery-tabs button'));
+  var title = gallery.querySelector('[data-gallery-title]');
+  var line = gallery.querySelector('[data-gallery-line]');
+  var index = 0;
+  var timer = null;
+  var transitionTimer = null;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (panels.length === 0) return;
+  if (panels.length === 1) {
+    panels[0].classList.add('is-active');
+    panels[0].setAttribute('aria-hidden', 'false');
+    if (title) title.textContent = panels[0].dataset.title || '';
+    if (line) line.textContent = panels[0].dataset.line || '';
+    tabs.forEach(function(t) {
+      t.classList.add('is-active');
+      t.setAttribute('aria-pressed', 'true');
+    });
+    return;
+  }
+
+  if (panels.length > 0 && title) {
+    title.textContent = panels[0].dataset.title || '';
+    if (line) line.textContent = panels[0].dataset.line || '';
+  }
+
+  function activate(next) {
+    if (next === index) return;
+    var previous = index;
+    var direction = (next - previous + panels.length) % panels.length;
+    gallery.dataset.direction = direction > panels.length / 2 ? 'prev' : 'next';
+    if (transitionTimer) window.clearTimeout(transitionTimer);
+    panels.forEach(function(p) { p.classList.remove('was-active'); });
+    var outgoing = panels[previous];
+    if (outgoing) outgoing.classList.add('was-active');
+    gallery.classList.add('is-switching');
+    transitionTimer = window.setTimeout(function() {
+      gallery.classList.remove('is-switching');
+      if (outgoing) outgoing.classList.remove('was-active');
+      transitionTimer = null;
+    }, 920);
+    index = next;
+    panels.forEach(function(p, i) {
+      var active = i === index;
+      p.classList.toggle('is-active', active);
+      p.setAttribute('aria-hidden', active ? 'false' : 'true');
+    });
+    tabs.forEach(function(t, i) {
+      var active = i === index;
+      t.classList.toggle('is-active', active);
+      t.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    if (title) title.textContent = panels[index].dataset.title || '';
+    if (line) line.textContent = panels[index].dataset.line || '';
+  }
+
+  function start() {
+    if (reduceMotion || timer) return;
+    timer = window.setInterval(function() {
+      activate((index + 1) % panels.length);
+    }, 4500);
+  }
+  function stop() {
+    if (!timer) return;
+    window.clearInterval(timer);
+    timer = null;
+  }
+
+  tabs.forEach(function(tab, i) {
+    tab.addEventListener('click', function() { stop(); activate(i); start(); });
+  });
+  if (frame) {
+    frame.addEventListener('click', function(e) {
+      var box = frame.getBoundingClientRect();
+      var next = e.clientX < box.left + box.width / 2
+        ? (index - 1 + panels.length) % panels.length
+        : (index + 1) % panels.length;
+      stop(); activate(next); start();
+    });
+  }
+  gallery.addEventListener('mouseenter', stop);
+  gallery.addEventListener('mouseleave', start);
+  gallery.addEventListener('focusin', stop);
+  gallery.addEventListener('focusout', start);
+  start();
+})();
+</script>
+</body>
+</html>

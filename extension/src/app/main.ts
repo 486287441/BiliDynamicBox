@@ -3,6 +3,7 @@ import { createPinia } from "pinia"
 
 import App from "./App.vue"
 import HomeApp from "./HomeApp.vue"
+import "../../tokens.css"
 import "../styles/fonts.scss"
 import "../styles/base.scss"
 import "../styles/bewly-theme.scss"

@@ -1,0 +1,18 @@
+{
+  "date": "2026-08-02",
+  "project": "ReadFlow browser extension",
+  "framework": "Vue 3 + Vite 7 + SCSS",
+  "motion": "GSAP with prefers-reduced-motion support",
+  "fonts": [
+    "ReadFlow Onest variable",
+    "ReadFlow Shanggu Sans SC"
+  ],
+  "existingEntry": "extension/src/app/main.ts",
+  "visualLayer": "extension/src/styles/bewly-theme.scss",
+  "signals": {
+    "preserveBusinessLogic": true,
+    "preserveFiveColumnLayout": true,
+    "tokenSource": "extension/tokens.css",
+    "darkMode": true
+  }
+}

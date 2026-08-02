@@ -35,7 +35,7 @@ const userAvatar = ref("")
 const userMid = ref("")
 function search(): void {
   const value = searchText.value.trim()
-  if (value) window.location.href = "https://search.bilibili.com/all?keyword=" + encodeURIComponent(value)
+  if (value) window.open("https://search.bilibili.com/all?keyword=" + encodeURIComponent(value), "_blank", "noopener,noreferrer")
 }
 onMounted(() => {
   void fetchLoggedInUser().then((user) => {

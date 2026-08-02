@@ -93,6 +93,7 @@ import TrashModal from "../components/TrashModal.vue"
 import VideoCard from "../components/VideoCard.vue"
 import type { FavoriteFolder, LibraryKind, VideoDynamicCard } from "../domain/types"
 import type { AnimeTrackingItem } from "../domain/anime-tracking"
+import { getPublishAfterTimestamp } from "../domain/publish-date-filter"
 import {
   fetchFavoriteFolders,
   fetchFavoriteVideos,
@@ -126,6 +127,7 @@ const error = ref<string | null>(null)
 const hasMore = ref(true)
 const pageIndex = ref(1)
 const minDurationMinutes = ref(persisted.minDurationMinutes)
+const publishAfterDate = ref(persisted.publishAfterDate)
 const hideWantWatch = ref(persisted.hideWantWatch)
 const openVideoOnWantWatch = ref(persisted.openVideoOnWantWatch)
 const trackedAnime = ref<AnimeTrackingItem[]>(persisted.trackedAnime)
@@ -160,6 +162,7 @@ let autoFilling = false
 const PREFETCH_DISTANCE_PX = 1600
 const MAX_AUTO_PAGES_PER_PASS = 4
 
+const publishAfterTimestamp = computed(() => getPublishAfterTimestamp(publishAfterDate.value))
 const visibleCards = computed(() => {
   const normalized = query.value.trim().toLocaleLowerCase()
   const minimumSeconds = Number(minDurationMinutes.value) * 60
@@ -167,6 +170,7 @@ const visibleCards = computed(() => {
     if (decision.dislikedIds.has(card.dynamicId)) return false
     if (hideWantWatch.value && decision.wantWatchIds.has(card.dynamicId)) return false
     if (Number.isFinite(minimumSeconds) && minimumSeconds > 0 && card.durationSeconds < minimumSeconds) return false
+    if (publishAfterDate.value && card.publishAt < publishAfterTimestamp.value) return false
     if (!normalized) return true
     return card.title.toLocaleLowerCase().includes(normalized) || card.upName.toLocaleLowerCase().includes(normalized)
   })
@@ -437,10 +441,12 @@ function openSettings(): void {
 }
 function onSettingsChange(settings: {
   minDurationMinutes: string
+  publishAfterDate: string
   hideWantWatch: boolean
   openVideoOnWantWatch: boolean
 }): void {
   minDurationMinutes.value = settings.minDurationMinutes
+  publishAfterDate.value = settings.publishAfterDate
   hideWantWatch.value = settings.hideWantWatch
   openVideoOnWantWatch.value = settings.openVideoOnWantWatch
   if (activeTab.value !== "following" && activeTab.value !== "tracking" && visibleCards.value.length < 12 && hasMore.value) {

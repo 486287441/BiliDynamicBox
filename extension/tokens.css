@@ -1,0 +1,94 @@
+/* Hallmark · genre: editorial · macrostructure: Workbench · design-system: design.md · designed-as-app
+ * theme: custom · vibe: "warm paper, ink-blue, vermilion restraint" · paper: oklch(96.5% 0.018 82) · accent: oklch(52% 0.18 35)
+ * display: ReadFlow Shanggu · body: ReadFlow Onest + ReadFlow Shanggu · axes: light / humanist-sans / warm
+ * Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4 · contrast: pass (40–41) · nav: N7 tool rail · footer: n/a · slop: pass (42–45)
+ * honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · icons: pass (30) · mobile: pass (34, 49, 50–57)
+ */
+:root {
+  --color-paper: oklch(96.5% 0.018 82);
+  --color-paper-2: oklch(94% 0.022 80);
+  --color-paper-3: oklch(90.5% 0.026 78);
+  --color-ink: oklch(23% 0.032 252);
+  --color-ink-2: oklch(36% 0.028 250);
+  --color-rule: oklch(77% 0.024 78);
+  --color-rule-2: oklch(86% 0.022 80);
+  --color-muted: oklch(48% 0.018 82);
+  --color-neutral: oklch(41% 0.02 80);
+  --color-accent: oklch(52% 0.18 35);
+  --color-accent-hover: oklch(46% 0.19 35);
+  --color-accent-soft: oklch(92% 0.045 48);
+  --color-accent-ink: oklch(97% 0.016 82);
+  --color-focus: oklch(36% 0.17 32);
+  --color-focus-dark: oklch(74% 0.13 38);
+  --color-error: oklch(50% 0.18 25);
+  --color-success: oklch(48% 0.09 150);
+  --color-overlay: oklch(20% 0.024 252 / 42%);
+
+  --color-paper-dark: oklch(20% 0.024 72);
+  --color-paper-2-dark: oklch(24% 0.025 72);
+  --color-paper-3-dark: oklch(29% 0.024 72);
+  --color-ink-dark: oklch(92% 0.018 82);
+  --color-ink-2-dark: oklch(77% 0.02 82);
+  --color-rule-dark: oklch(43% 0.022 72);
+  --color-rule-2-dark: oklch(34% 0.022 72);
+  --color-muted-dark: oklch(66% 0.018 80);
+
+  --font-display: "ReadFlow Shanggu", "ReadFlow Onest", "PingFang SC", sans-serif;
+  --font-body: "ReadFlow Onest", "ReadFlow Shanggu", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-outlier: "ReadFlow Onest", ui-monospace, monospace;
+  --display-weight: 650;
+  --tracking-display: -0.035em;
+  --tracking-label: 0.08em;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.625rem;
+  --text-2xl: 2.125rem;
+  --text-display: clamp(2.4rem, 4vw + 1rem, 5.25rem);
+
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+  --spacing-3xs: var(--space-3xs);
+  --spacing-2xs: var(--space-2xs);
+  --spacing-xs: var(--space-xs);
+  --spacing-sm: var(--space-sm);
+  --spacing-md: var(--space-md);
+  --spacing-lg: var(--space-lg);
+  --spacing-xl: var(--space-xl);
+  --spacing-2xl: var(--space-2xl);
+
+  --rule-hair: 1px;
+  --rule-fine: 2px;
+  --radius-card: 0.625rem;
+  --radius-input: 0.25rem;
+  --radius-control: 0.25rem;
+  --radius-window: 0.875rem;
+  --radius-pill: 999px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 100ms;
+  --dur-short: 180ms;
+  --dur-medium: 280ms;
+  --dur-long: 420ms;
+
+  --shadow-card: 0 1px 0 color-mix(in oklch, var(--color-ink) 8%, transparent), 0 8px 24px -18px color-mix(in oklch, var(--color-ink) 28%, transparent);
+  --shadow-raised: 0 24px 64px -28px color-mix(in oklch, var(--color-ink) 42%, transparent);
+  --shadow-whisper: 0 10px 28px -22px color-mix(in oklch, var(--color-ink) 34%, transparent);
+
+  --z-base: 0;
+  --z-sticky: 90;
+  --z-header: 100;
+  --z-overlay: 1000;
+  --z-modal: 2147483550;
+}
