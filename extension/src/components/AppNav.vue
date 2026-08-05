@@ -1,46 +1,100 @@
 <template>
-  <header class="bewly-topbar">
-    <div class="bewly-topbar-left">
-      <a class="bewly-logo" href="https://www.bilibili.com/" title="首页"><Icon icon="mingcute:bilibili-line" /></a>
-    </div>
-    <form class="bewly-topbar-search" @submit.prevent="search">
-      <input v-model="searchText" type="search" placeholder="搜索视频、番剧或 UP 主" />
-      <button type="submit" title="搜索"><Icon icon="mingcute:search-2-line" /></button>
-    </form>
-    <div class="bewly-topbar-right">
-      <a class="bewly-user-avatar" :href="userMid ? 'https://space.bilibili.com/' + userMid : 'https://account.bilibili.com/'" title="个人空间">
-        <img v-if="userAvatar" :src="userAvatar" alt="用户头像" /><Icon v-else icon="mingcute:user-3-line" />
+  <aside
+    class="billnext-sidebar"
+    :class="{ 'is-collapsed': collapsed }"
+    aria-label="billnext 主导航"
+  >
+    <button class="billnext-collapse-toggle" type="button" :aria-label="collapsed ? '展开导航' : '收起导航'" :title="collapsed ? '展开导航' : '收起导航'" @click.stop="toggleCollapsed">
+      <Icon :icon="collapsed ? 'mingcute:right-line' : 'mingcute:left-line'" />
+    </button>
+    <a class="billnext-brand" href="https://www.bilibili.com/" title="billnext 首页">
+      <span class="billnext-brand-mark"><Icon icon="mingcute:bilibili-line" /></span>
+      <span><strong>BillNext</strong></span>
+    </a>
+
+    <nav class="billnext-primary-nav" aria-label="内容导航">
+      <a
+        v-for="item in primaryItems"
+        :key="item.label"
+        :class="{ active: item.active }"
+        :href="item.href"
+        :title="item.label"
+        :aria-current="item.active ? 'page' : undefined"
+        @click="onPrimaryClick($event, item.tab)"
+      >
+        <Icon :icon="item.active ? item.activeIcon : item.icon" />
+        <span>{{ item.label }}</span>
       </a>
-      <div class="bewly-topbar-action-pill">
-        <a href="https://message.bilibili.com/" title="消息"><Icon icon="tabler:bell" /></a>
-        <a href="https://t.bilibili.com/" title="动态"><Icon :icon="active === 'moments' ? 'tabler:windmill-filled' : 'tabler:windmill'" /></a>
-        <a href="https://www.bilibili.com/?readflow=favorites" title="收藏" @click.prevent="$emit('navigate-library', 'favorites')"><Icon :icon="active === 'favorites' ? 'mingcute:star-fill' : 'mingcute:star-line'" /></a>
-        <a href="https://www.bilibili.com/?readflow=history" title="历史" @click.prevent="$emit('navigate-library', 'history')"><Icon :icon="active === 'history' ? 'mingcute:time-fill' : 'mingcute:time-line'" /></a>
-        <a href="https://www.bilibili.com/?readflow=watchlater" title="稍后再看" @click.prevent="$emit('navigate-library', 'watchlater')"><Icon :icon="active === 'watchlater' ? 'mingcute:carplay-fill' : 'mingcute:carplay-line'" /></a>
-        <a class="bewly-upload" href="https://member.bilibili.com/platform/upload/video/frame" title="投稿"><Icon icon="mingcute:upload-line" /></a>
-      </div>
-    </div>
-  </header>
+    </nav>
+
+    <nav class="billnext-secondary-nav" aria-label="个人内容">
+      <a href="https://www.bilibili.com/?readflow=watchlater" title="稍后再看" :class="{ active: active === 'watchlater' }" @click.prevent="$emit('navigate-library', 'watchlater')">
+        <Icon :icon="active === 'watchlater' ? 'mingcute:bookmark-fill' : 'mingcute:bookmark-line'" /><span>稍后再看</span>
+      </a>
+      <a href="https://www.bilibili.com/?readflow=favorites" title="收藏" :class="{ active: active === 'favorites' }" @click.prevent="$emit('navigate-library', 'favorites')">
+        <Icon :icon="active === 'favorites' ? 'mingcute:star-fill' : 'mingcute:star-line'" /><span>收藏</span>
+      </a>
+      <a href="https://www.bilibili.com/?readflow=history" title="历史" :class="{ active: active === 'history' }" @click.prevent="$emit('navigate-library', 'history')">
+        <Icon :icon="active === 'history' ? 'mingcute:time-fill' : 'mingcute:time-line'" /><span>历史</span>
+      </a>
+      <button type="button" title="设置" @click="$emit('open-tools')">
+        <Icon icon="mingcute:settings-3-line" /><span>设置</span>
+      </button>
+    </nav>
+
+    <a class="billnext-profile" :href="userMid ? 'https://space.bilibili.com/' + userMid : 'https://account.bilibili.com/'" title="个人空间">
+      <span class="billnext-profile-avatar"><img v-if="userAvatar" :src="userAvatar" alt="用户头像" /><Icon v-else icon="mingcute:user-3-line" /></span>
+      <span><strong>{{ userName || '我的空间' }}</strong></span>
+      <Icon icon="mingcute:right-small-line" />
+    </a>
+  </aside>
 </template>
 
 <script setup lang="ts">
 import { Icon } from "@iconify/vue"
-import { onMounted, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { fetchLoggedInUser } from "../services/bilibili-api"
 import type { LibraryKind } from "../domain/types"
-defineProps<{ active: "home" | "moments" | "favorites" | "history" | "watchlater"; trashCount: number }>()
-defineEmits<{ (event: "open-trash"): void; (event: "navigate-library", kind: LibraryKind): void }>()
-const searchText = ref("")
+import type { HomeTabValue } from "./HomeTabsBar.vue"
+
+type NavActive = "home" | "moments" | "tracking" | "favorites" | "history" | "watchlater"
+const props = withDefaults(defineProps<{ active: NavActive; trashCount: number; collapsed?: boolean }>(), {
+  collapsed: false,
+})
+const emit = defineEmits<{
+  (event: "open-trash"): void
+  (event: "open-tools"): void
+  (event: "navigate-library", kind: LibraryKind): void
+  (event: "navigate-tab", tab: HomeTabValue): void
+  (event: "update:collapsed", collapsed: boolean): void
+}>()
+
 const userAvatar = ref("")
 const userMid = ref("")
-function search(): void {
-  const value = searchText.value.trim()
-  if (value) window.open("https://search.bilibili.com/all?keyword=" + encodeURIComponent(value), "_blank", "noopener,noreferrer")
+const userName = ref("")
+const collapsed = computed(() => props.collapsed)
+
+function toggleCollapsed(): void {
+  emit("update:collapsed", !collapsed.value)
 }
+const primaryItems = computed(() => [
+  { label: "首页", icon: "mingcute:home-5-line", activeIcon: "mingcute:home-5-fill", href: "https://www.bilibili.com/", active: props.active === "home", tab: "recommended" as HomeTabValue },
+  { label: "动态", icon: "mingcute:group-3-line", activeIcon: "mingcute:group-3-fill", href: "https://www.bilibili.com/?readflow=following", active: props.active === "moments", tab: "following" as HomeTabValue },
+  { label: "追番", icon: "mingcute:tv-2-line", activeIcon: "mingcute:tv-2-fill", href: "https://www.bilibili.com/?readflow=tracking", active: props.active === "tracking", tab: "tracking" as HomeTabValue },
+])
+
+function onPrimaryClick(event: MouseEvent, tab: HomeTabValue): void {
+  if (window.location.hostname !== "www.bilibili.com") return
+  event.preventDefault()
+  emit("navigate-tab", tab)
+}
+
 onMounted(() => {
   void fetchLoggedInUser().then((user) => {
     userAvatar.value = user.face
     userMid.value = user.mid
+    userName.value = user.name
   }).catch(() => undefined)
 })
+
 </script>

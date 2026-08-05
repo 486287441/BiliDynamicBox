@@ -94,7 +94,13 @@ export function captureCardRects(
     if (exclude && el === exclude) {
       return
     }
-    rects.set(el, el.getBoundingClientRect())
+    const rect = el.getBoundingClientRect()
+    if (rect.width < 1 || rect.height < 1) return
+    // Animating off-screen cards wastes compositor work and is the main source
+    // of jank on long inbox pages.
+    if (rect.bottom < -40 || rect.top > window.innerHeight + 40) return
+    if (rects.size >= 12) return
+    rects.set(el, rect)
   })
   return rects
 }
@@ -109,7 +115,12 @@ export function animateGridReflow(
     return
   }
 
-  const timeline = gsap.timeline({ onComplete })
+  const timeline = gsap.timeline({
+    onComplete: () => {
+      beforeRects.forEach((_rect, el) => el.classList.remove("is-flip-animating"))
+      onComplete?.()
+    },
+  })
   let hasTween = false
 
   beforeRects.forEach((oldRect, el) => {
@@ -123,10 +134,19 @@ export function animateGridReflow(
       return
     }
     hasTween = true
+    el.classList.add("is-flip-animating")
     timeline.fromTo(
       el,
-      { x: dx, y: dy },
-      { x: 0, y: 0, duration: 0.3, ease: "expo.out", clearProps: "transform", ...BASE },
+      { x: dx, y: dy, willChange: "transform" },
+      {
+        x: 0,
+        y: 0,
+        duration: 0.24,
+        ease: "power3.out",
+        clearProps: "transform,willChange",
+        onComplete: () => el.classList.remove("is-flip-animating"),
+        ...BASE,
+      },
       0,
     )
   })

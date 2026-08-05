@@ -1,8 +1,6 @@
 <template>
-  <main class="inbox-shell" :class="{ 'dynamic-feed-embedded': props.embedded, 'feed-hidden': props.embedded && !props.feedVisible }">
-    <AppNav v-if="!props.embedded" active="moments" :trash-count="trash.count" @open-trash="trash.setOpen(true)" />
-    <AppDock v-if="!props.embedded" active="moments" @refresh="reloadMoments" @open-tools="openDynamicTools" />
-    <HomeTabsBar v-if="!props.embedded" active="following" @select="onSharedTabSelect" />
+  <main ref="shellRef" class="inbox-shell" :class="{ 'dynamic-feed-embedded': props.embedded, 'feed-hidden': props.embedded && !props.feedVisible, 'detail-open': !props.embedded && Boolean(localSelectedCard), 'sidebar-collapsed': !props.embedded && sidebarCollapsed }">
+    <AppNav v-if="!props.embedded" active="moments" :trash-count="trash.count" :collapsed="sidebarCollapsed" @update:collapsed="onSidebarCollapsedUpdate" @open-trash="trash.setOpen(true)" @open-tools="openDynamicTools" @navigate-tab="onSharedTabSelect" />
     <TopToolbar
       ref="toolbarRef"
       :view-mode="viewMode"
@@ -13,6 +11,7 @@
       :publish-after-date="publishAfterDate"
       :hide-want-watch="hideWantWatch"
       :open-video-on-want-watch="openVideoOnWantWatch"
+      :sidebar-collapsed="sidebarCollapsed"
       :category-filter="categoryFilter"
       :ai-configured="classification.configured"
       :ai-classifying="classification.classifying"
@@ -20,6 +19,7 @@
       @open-trash="trash.setOpen(true)"
       @toggle-hide-want-watch="onToggleHideWantWatch"
       @toggle-open-video-on-want-watch="onToggleOpenVideoOnWantWatch"
+      @toggle-sidebar-collapsed="onToggleSidebarCollapsed"
       @update:view-mode="onViewModeUpdate"
       @update:search-query="searchQuery = $event"
       @update:search-scope="searchScope = $event"
@@ -47,12 +47,14 @@
         :following-up-map="decision.followingUpMap"
         :relation-pending-mid="decision.relationPendingMid"
         :transcriber-map="transcriberMap"
+        :selected-id="activeSelectedCardId"
         @want-watch="onWantWatch"
         @help-read="onHelpRead"
         @dislike="onDislike"
         @toggle-follow="onToggleFollow"
         @leave-complete="onCardLeaveComplete"
         @enter-complete="onCardEnterComplete"
+        @select-card="onSelectCard"
       />
       <p v-if="inbox.loading && visibleCardCount === 0" class="inbox-load-more-tip">正在加载动态...</p>
       <p v-else-if="isFillingList" class="inbox-load-more-tip">正在补足列表...</p>
@@ -78,20 +80,31 @@
       @restore-all="onRestoreAll"
       @clear-all="onClearAll"
     />
+    <VideoDetailPanel
+      v-if="!props.embedded"
+      :card="localSelectedCard"
+      :transcriber-state="localSelectedCard ? transcriber.getForCard(localSelectedCard) : undefined"
+      :pending="Boolean(localSelectedCard && decision.pendingMap[localSelectedCard.dynamicId])"
+      :want-watched="Boolean(localSelectedCard && wantWatchMap[localSelectedCard.dynamicId])"
+      @close="closeLocalSelectedCard"
+      @want-watch="localSelectedCard && onWantWatch(localSelectedCard)"
+      @help-read="localSelectedCard && onHelpRead(localSelectedCard)"
+      @dislike="localSelectedCard && onDetailDislike(localSelectedCard)"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue"
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
 
 import TopToolbar, { type SearchScope } from "../components/TopToolbar.vue"
 import AppNav from "../components/AppNav.vue"
-import AppDock from "../components/AppDock.vue"
-import HomeTabsBar, { type HomeTabValue } from "../components/HomeTabsBar.vue"
+import type { HomeTabValue } from "../components/HomeTabsBar.vue"
 import UpFilterView from "../components/UpFilterView.vue"
 import TrashModal from "../components/TrashModal.vue"
+import VideoDetailPanel from "../components/VideoDetailPanel.vue"
 import type { ViewMode } from "../domain/view-mode"
-import type { ContentCategoryFilter } from "../domain/content-category"
+import { inferContentCategory, type ContentCategoryFilter } from "../domain/content-category"
 import { getDateGroupKey } from "../domain/group-by-date"
 import { normalizePublishAfterDate } from "../domain/publish-date-filter"
 import type { DateGroup, VideoDynamicCard } from "../domain/types"
@@ -104,12 +117,13 @@ import { useContentClassificationStore } from "../store/content-classification"
 import { useTranscriberStore } from "../store/transcriber"
 import { readPersistedState, writePersistedState } from "../services/storage"
 import { showToast } from "../services/toast"
-import type { CardLeaveVariant } from "../utils/motion"
+import { animateGridReflow, captureCardRects, type CardLeaveVariant } from "../utils/motion"
 
 const persistedState = readPersistedState()
-const props = withDefaults(defineProps<{ embedded?: boolean; feedVisible?: boolean }>(), {
+const props = withDefaults(defineProps<{ embedded?: boolean; feedVisible?: boolean; selectedCardId?: string }>(), {
   embedded: false,
   feedVisible: true,
+  selectedCardId: "",
 })
 const emit = defineEmits<{
   (event: "settings-change", settings: {
@@ -117,7 +131,9 @@ const emit = defineEmits<{
     publishAfterDate: string
     hideWantWatch: boolean
     openVideoOnWantWatch: boolean
+    sidebarCollapsed: boolean
   }): void
+  (event: "select-card", card: VideoDynamicCard): void
 }>()
 const inbox = useInboxStore()
 const upFilter = useUpFilterStore()
@@ -132,7 +148,11 @@ const minDurationMinutes = ref(persistedState.minDurationMinutes)
 const publishAfterDate = ref(persistedState.publishAfterDate)
 const hideWantWatch = ref(persistedState.hideWantWatch)
 const openVideoOnWantWatch = ref(persistedState.openVideoOnWantWatch)
+const sidebarCollapsed = ref(persistedState.sidebarCollapsed)
 const categoryFilter = ref<ContentCategoryFilter>("all")
+const localSelectedCard = ref<VideoDynamicCard | null>(null)
+const shellRef = ref<HTMLElement | null>(null)
+const activeSelectedCardId = computed(() => props.embedded ? props.selectedCardId : localSelectedCard.value?.dynamicId ?? "")
 const cardLeaveReasons = ref<Record<string, CardLeaveVariant>>({})
 const leavingGroupCounts = ref<Record<string, number>>({})
 let pendingFillAfterLeave = 0
@@ -150,13 +170,43 @@ function openDynamicTools(): void {
   toolbarRef.value?.openToolsPanel()
 }
 
-defineExpose({ openSettings: openDynamicTools, refreshFeed: reloadMoments })
+function setCategoryFilter(value: ContentCategoryFilter): void {
+  onCategoryFilterUpdate(value)
+}
+
+function transitionCardLayout(update: () => void): void {
+  const shell = shellRef.value
+  const before = shell ? captureCardRects(shell) : new Map<HTMLElement, DOMRect>()
+  shell?.classList.add("layout-flip-active")
+  update()
+  void nextTick(() => {
+    if (!shell) return
+    animateGridReflow(shell, before, () => shell.classList.remove("layout-flip-active"))
+  })
+}
+
+defineExpose({ openSettings: openDynamicTools, refreshFeed: reloadMoments, setCategoryFilter })
 
 function onSharedTabSelect(tab: HomeTabValue): void {
   if (tab === "following") return
   window.location.href = tab === "recommended"
     ? "https://www.bilibili.com/"
     : "https://www.bilibili.com/?readflow=" + tab
+}
+
+function onSelectCard(card: VideoDynamicCard): void {
+  if (props.embedded) emit("select-card", card)
+  else if (localSelectedCard.value?.dynamicId !== card.dynamicId) transitionCardLayout(() => { localSelectedCard.value = card })
+}
+
+function closeLocalSelectedCard(): void {
+  if (!localSelectedCard.value) return
+  transitionCardLayout(() => { localSelectedCard.value = null })
+}
+
+function onDetailDislike(card: VideoDynamicCard): void {
+  void onDislike(card)
+  closeLocalSelectedCard()
 }
 
 function getScrollRoot(): HTMLElement | null {
@@ -201,7 +251,8 @@ function passesDisplayFilters(item: VideoDynamicCard): boolean {
   if (!matchesDuration) {
     return false
   }
-  if (categoryFilter.value !== "all" && classification.labels[item.dynamicId] !== categoryFilter.value) {
+  const resolvedCategory = classification.labels[item.dynamicId] ?? inferContentCategory(item)
+  if (categoryFilter.value !== "all" && resolvedCategory !== categoryFilter.value) {
     return false
   }
   if (searchScope.value !== "dynamics" || !normalizedQuery.value) {
@@ -345,6 +396,18 @@ function onToggleOpenVideoOnWantWatch(): void {
   showToast(openVideoOnWantWatch.value ? "点击“想看”时将打开视频" : "点击“想看”时不再打开视频")
 }
 
+function onSidebarCollapsedUpdate(value: boolean): void {
+  if (sidebarCollapsed.value === value) return
+  transitionCardLayout(() => { sidebarCollapsed.value = value })
+  writePersistedState({ sidebarCollapsed: value })
+  emitSettingsChange()
+}
+
+function onToggleSidebarCollapsed(): void {
+  onSidebarCollapsedUpdate(!sidebarCollapsed.value)
+  showToast(sidebarCollapsed.value ? "左侧导航已固定收起" : "左侧导航已固定展开")
+}
+
 function onMinDurationMinutesUpdate(value: string): void {
   const trimmed = value.trim()
   const numeric = Number(trimmed)
@@ -378,6 +441,7 @@ function emitSettingsChange(): void {
     publishAfterDate: publishAfterDate.value,
     hideWantWatch: hideWantWatch.value,
     openVideoOnWantWatch: openVideoOnWantWatch.value,
+    sidebarCollapsed: sidebarCollapsed.value,
   })
 }
 
@@ -387,7 +451,8 @@ function onHelpRead(card: VideoDynamicCard): void {
 }
 
 function onCategoryFilterUpdate(value: ContentCategoryFilter): void {
-  categoryFilter.value = value
+  if (categoryFilter.value === value) return
+  transitionCardLayout(() => { categoryFilter.value = value })
   classification.ensureClassified(inbox.allCards)
   void inbox.fillAfterHide(getScrollRoot())
 }

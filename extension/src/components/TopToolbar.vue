@@ -81,7 +81,7 @@
                     <div class="settings-chip-grid">
                       <button v-for="option in categoryFilterOptions" :key="option.value" type="button" :class="{ active: categoryFilter === option.value }" @click="$emit('update:categoryFilter', option.value)">{{ option.label }}</button>
                     </div>
-                    <small>依赖 AI 分类结果，仅筛选动态收件箱。</small>
+                    <small>优先使用 AI 分类；未配置时根据标题与标签在本地分类。</small>
                   </div>
                 </div>
               </section>
@@ -103,6 +103,10 @@
                 <button class="settings-toggle-row" type="button" @click="$emit('toggle-open-video-on-want-watch')">
                   <span><strong>点击“想看”时打开视频</strong><small>适用于首页、动态与资料库中的视频卡片</small></span>
                   <i :class="{ active: openVideoOnWantWatch }"><b></b></i>
+                </button>
+                <button class="settings-toggle-row" type="button" @click="$emit('toggle-sidebar-collapsed')">
+                  <span><strong>收起左侧导航</strong><small>开启后固定显示图标栏；关闭后固定显示完整导航</small></span>
+                  <i :class="{ active: sidebarCollapsed }"><b></b></i>
                 </button>
               </section>
 
@@ -165,6 +169,7 @@ const props = defineProps<{
   publishAfterDate: string
   hideWantWatch: boolean
   openVideoOnWantWatch: boolean
+  sidebarCollapsed: boolean
   categoryFilter: ContentCategoryFilter
   aiConfigured: boolean
   aiClassifying: boolean
@@ -174,6 +179,7 @@ const emit = defineEmits<{
   (event: "open-trash"): void
   (event: "toggle-hide-want-watch"): void
   (event: "toggle-open-video-on-want-watch"): void
+  (event: "toggle-sidebar-collapsed"): void
   (event: "update:viewMode", value: ViewMode): void
   (event: "update:searchQuery", value: string): void
   (event: "update:searchScope", value: SearchScope): void

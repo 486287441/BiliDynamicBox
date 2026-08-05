@@ -1,9 +1,16 @@
 <template>
-  <main class="inbox-shell home-shell">
-    <AppNav :active="navActive" :trash-count="trash.count" @open-trash="trash.setOpen(true)" @navigate-library="navigateLibrary" />
-    <AppDock :active="navActive" @refresh="refresh" @open-tools="openSettings" @navigate-library="navigateLibrary" />
-
-    <HomeTabsBar v-if="!libraryKind" :active="activeTab" @select="selectTab" />
+  <main ref="shellRef" class="inbox-shell home-shell" :class="{ 'detail-open': Boolean(selectedCard), 'sidebar-collapsed': sidebarCollapsed }">
+    <AppNav
+      :active="navActive"
+      :trash-count="trash.count"
+      :collapsed="sidebarCollapsed"
+      @update:collapsed="setSidebarCollapsed"
+      @open-trash="trash.setOpen(true)"
+      @open-tools="openSettings"
+      @navigate-library="navigateLibrary"
+      @navigate-tab="selectTab"
+    />
+    <WorkspaceToolbar :category="categoryFilter" @update:category="setCategoryFilter" @open-tools="openSettings" />
 
     <LibraryView
       v-if="libraryKind"
@@ -34,7 +41,9 @@
       ref="followingFeedRef"
       embedded
       :feed-visible="activeTab === 'following'"
+      :selected-card-id="selectedCard?.dynamicId"
       @settings-change="onSettingsChange"
+      @select-card="openSelectedCard"
     />
 
     <AnimeTrackingView
@@ -64,10 +73,12 @@
         :following-up-map="decision.followingUpMap"
         :relation-pending-mid="decision.relationPendingMid"
         :transcriber-state="transcriber.getForCard(card)"
+        :selected="selectedCard?.dynamicId === card.dynamicId"
         @want-watch="onWantWatch(card)"
         @help-read="onHelpRead(card)"
         @dislike="onDislike(card)"
         @toggle-follow="onToggleFollow(card)"
+        @select="openSelectedCard(card)"
       />
     </TransitionGroup>
 
@@ -77,6 +88,16 @@
       <span v-else-if="cards.length">已经到底了</span>
     </div>
 
+    <VideoDetailPanel
+      :card="selectedCard"
+      :transcriber-state="selectedCard ? transcriber.getForCard(selectedCard) : undefined"
+      :pending="Boolean(selectedCard && decision.pendingMap[selectedCard.dynamicId])"
+      :want-watched="Boolean(selectedCard && wantWatchMap[selectedCard.dynamicId])"
+      @close="closeSelectedCard"
+      @want-watch="selectedCard && onWantWatch(selectedCard)"
+      @help-read="selectedCard && onHelpRead(selectedCard)"
+      @dislike="selectedCard && onDetailDislike(selectedCard)"
+    />
     <TrashModal :open="trash.open" :items="trash.items" @close="trash.setOpen(false)" @restore="onRestore" @restore-all="onRestoreAll" @clear-all="onClearAll" />
   </main>
 </template>
@@ -84,15 +105,17 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from "vue"
 import DynamicFeed from "./App.vue"
-import AppDock from "../components/AppDock.vue"
 import AppNav from "../components/AppNav.vue"
-import HomeTabsBar, { type HomeTabValue } from "../components/HomeTabsBar.vue"
+import type { HomeTabValue } from "../components/HomeTabsBar.vue"
+import WorkspaceToolbar from "../components/WorkspaceToolbar.vue"
+import VideoDetailPanel from "../components/VideoDetailPanel.vue"
 import AnimeTrackingView, { type AnimeEditorPayload } from "../components/AnimeTrackingView.vue"
 import LibraryView from "../components/LibraryView.vue"
 import TrashModal from "../components/TrashModal.vue"
 import VideoCard from "../components/VideoCard.vue"
 import type { FavoriteFolder, LibraryKind, VideoDynamicCard } from "../domain/types"
 import type { AnimeTrackingItem } from "../domain/anime-tracking"
+import { inferContentCategory, type ContentCategoryFilter } from "../domain/content-category"
 import { getPublishAfterTimestamp } from "../domain/publish-date-filter"
 import {
   fetchFavoriteFolders,
@@ -106,6 +129,7 @@ import {
 import { editTrackedAnime, fetchAnimeByName, refreshTrackedAnime } from "../services/anime-tracking"
 import { readPersistedState, writePersistedState } from "../services/storage"
 import { showToast } from "../services/toast"
+import { animateGridReflow, captureCardRects } from "../utils/motion"
 import { useDecisionStore } from "../store/decision"
 import { useTranscriberStore } from "../store/transcriber"
 import { useTrashStore } from "../store/trash"
@@ -130,10 +154,14 @@ const minDurationMinutes = ref(persisted.minDurationMinutes)
 const publishAfterDate = ref(persisted.publishAfterDate)
 const hideWantWatch = ref(persisted.hideWantWatch)
 const openVideoOnWantWatch = ref(persisted.openVideoOnWantWatch)
+const sidebarCollapsed = ref(persisted.sidebarCollapsed)
 const trackedAnime = ref<AnimeTrackingItem[]>(persisted.trackedAnime)
 const trackingLoading = ref(false)
 const trackingError = ref("")
-const followingFeedRef = ref<{ openSettings: () => void; refreshFeed: () => void } | null>(null)
+const followingFeedRef = ref<{ openSettings: () => void; refreshFeed: () => void; setCategoryFilter: (value: ContentCategoryFilter) => void } | null>(null)
+const categoryFilter = ref<ContentCategoryFilter>("all")
+const selectedCard = ref<VideoDynamicCard | null>(null)
+const shellRef = ref<HTMLElement | null>(null)
 const favoriteFolders = ref<FavoriteFolder[]>([])
 const activeFavoriteFolderId = ref(0)
 interface LibraryState {
@@ -171,12 +199,13 @@ const visibleCards = computed(() => {
     if (hideWantWatch.value && decision.wantWatchIds.has(card.dynamicId)) return false
     if (Number.isFinite(minimumSeconds) && minimumSeconds > 0 && card.durationSeconds < minimumSeconds) return false
     if (publishAfterDate.value && card.publishAt < publishAfterTimestamp.value) return false
+    if (categoryFilter.value !== "all" && inferContentCategory(card) !== categoryFilter.value) return false
     if (!normalized) return true
     return card.title.toLocaleLowerCase().includes(normalized) || card.upName.toLocaleLowerCase().includes(normalized)
   })
 })
 const wantWatchMap = computed(() => Object.fromEntries([...decision.wantWatchIds].map((id) => [id, true])))
-const navActive = computed(() => libraryKind.value ?? (activeTab.value === "following" ? "moments" : "home"))
+const navActive = computed(() => libraryKind.value ?? (activeTab.value === "following" ? "moments" : activeTab.value === "tracking" ? "tracking" : "home"))
 const activeLibraryState = computed(() => libraryKind.value ? libraryStates[libraryKind.value] : null)
 const libraryCards = computed(() => activeLibraryState.value?.cards ?? [])
 const libraryLoading = computed(() => activeLibraryState.value?.loading ?? false)
@@ -271,6 +300,13 @@ function prefetchLibraries(): void {
 }
 
 async function selectTab(tab: HomeTab): Promise<void> {
+  if (libraryKind.value) {
+    libraryKind.value = null
+    const nextUrl = new URL(window.location.href)
+    nextUrl.searchParams.delete("readflow")
+    window.history.replaceState({}, "", nextUrl.toString())
+  }
+  selectedCard.value = null
   if (tab === "following") {
     activeTab.value = tab
     query.value = ""
@@ -439,16 +475,53 @@ function removeTrackedAnime(item: AnimeTrackingItem): void {
 function openSettings(): void {
   followingFeedRef.value?.openSettings()
 }
+function transitionCardLayout(update: () => void): void {
+  const shell = shellRef.value
+  const before = shell ? captureCardRects(shell) : new Map<HTMLElement, DOMRect>()
+  shell?.classList.add("layout-flip-active")
+  update()
+  void nextTick(() => {
+    if (!shell) return
+    animateGridReflow(shell, before, () => shell.classList.remove("layout-flip-active"))
+  })
+}
+function openSelectedCard(card: VideoDynamicCard): void {
+  if (selectedCard.value?.dynamicId === card.dynamicId) return
+  transitionCardLayout(() => { selectedCard.value = card })
+}
+function closeSelectedCard(): void {
+  if (!selectedCard.value) return
+  transitionCardLayout(() => { selectedCard.value = null })
+}
+function setCategoryFilter(value: ContentCategoryFilter): void {
+  if (categoryFilter.value === value) return
+  if (activeTab.value === "following") {
+    categoryFilter.value = value
+    followingFeedRef.value?.setCategoryFilter(value)
+  } else {
+    transitionCardLayout(() => { categoryFilter.value = value })
+  }
+  void nextTick(() => {
+    if (activeTab.value !== "following" && activeTab.value !== "tracking" && visibleCards.value.length < 12 && hasMore.value) void loadMore()
+  })
+}
+function setSidebarCollapsed(value: boolean): void {
+  if (sidebarCollapsed.value === value) return
+  transitionCardLayout(() => { sidebarCollapsed.value = value })
+  writePersistedState({ sidebarCollapsed: value })
+}
 function onSettingsChange(settings: {
   minDurationMinutes: string
   publishAfterDate: string
   hideWantWatch: boolean
   openVideoOnWantWatch: boolean
+  sidebarCollapsed: boolean
 }): void {
   minDurationMinutes.value = settings.minDurationMinutes
   publishAfterDate.value = settings.publishAfterDate
   hideWantWatch.value = settings.hideWantWatch
   openVideoOnWantWatch.value = settings.openVideoOnWantWatch
+  if (sidebarCollapsed.value !== settings.sidebarCollapsed) setSidebarCollapsed(settings.sidebarCollapsed)
   if (activeTab.value !== "following" && activeTab.value !== "tracking" && visibleCards.value.length < 12 && hasMore.value) {
     void loadMore()
   }
@@ -463,6 +536,10 @@ async function onDislike(card: VideoDynamicCard): Promise<void> {
   cards.value = cards.value.filter((item) => item.dynamicId !== card.dynamicId)
   for (const state of Object.values(libraryStates)) state.cards = state.cards.filter((item) => item.dynamicId !== card.dynamicId)
   if (visibleCards.value.length < 12 && hasMore.value) void loadMore()
+}
+function onDetailDislike(card: VideoDynamicCard): void {
+  void onDislike(card)
+  closeSelectedCard()
 }
 async function onToggleFollow(card: VideoDynamicCard): Promise<void> {
   if (!card.upMid) return

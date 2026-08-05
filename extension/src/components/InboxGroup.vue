@@ -1,6 +1,6 @@
 <template>
   <article class="group-block" ref="groupRef">
-    <h2 ref="titleRef">{{ group.label }}（{{ displayCount }}）</h2>
+    <h2 ref="titleRef"><span>{{ group.label }}</span><small>{{ displayCount }}</small></h2>
     <TransitionGroup
       class="group-list"
       tag="div"
@@ -17,10 +17,12 @@
         :following-up-map="followingUpMap"
         :relation-pending-mid="relationPendingMid"
         :transcriber-state="transcriberMap[item.dynamicId]"
+        :selected="selectedId === item.dynamicId"
         @want-watch="$emit('want-watch', item)"
         @help-read="$emit('help-read', item)"
         @dislike="$emit('dislike', item)"
         @toggle-follow="$emit('toggle-follow', item)"
+        @select="$emit('select-card', item)"
       />
     </TransitionGroup>
   </article>
@@ -53,6 +55,7 @@ const props = defineProps<{
   leaveReasonMap: Record<string, CardLeaveVariant>
   enterCardIds: string[]
   transcriberMap: Record<string, TranscriberCardState | undefined>
+  selectedId?: string
 }>()
 
 const emit = defineEmits<{
@@ -60,6 +63,7 @@ const emit = defineEmits<{
   (event: "dislike", card: VideoDynamicCard): void
   (event: "toggle-follow", card: VideoDynamicCard): void
   (event: "help-read", card: VideoDynamicCard): void
+  (event: "select-card", card: VideoDynamicCard): void
   (event: "leave-complete", payload: { dynamicId: string; groupKey: string }): void
   (event: "enter-complete", dynamicId: string): void
 }>()
@@ -68,8 +72,6 @@ const groupRef = ref<HTMLElement | null>(null)
 const titleRef = ref<HTMLElement | null>(null)
 const knownCardIds = ref<string[]>([])
 let motionCtx: gsap.Context | null = null
-
-const enterCardIdSet = computed(() => new Set(props.enterCardIds))
 
 const displayCount = computed(() => {
   const finalCount = props.finalCountMap[props.group.key]
@@ -146,9 +148,7 @@ watch(
   () => props.group.items,
   (items) => {
     const known = new Set(knownCardIds.value)
-    const fillInItems = items.filter(
-      (item) => !known.has(item.dynamicId) && enterCardIdSet.value.has(item.dynamicId),
-    )
+    const fillInItems = items.filter((item) => !known.has(item.dynamicId))
     knownCardIds.value = items.map((item) => item.dynamicId)
 
     if (fillInItems.length > 0) {

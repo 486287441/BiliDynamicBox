@@ -1,33 +1,32 @@
 <template>
-  <article class="video-card" :data-dynamic-id="card.dynamicId">
+  <article class="video-card" :class="{ 'is-selected': selected }" :data-dynamic-id="card.dynamicId" :aria-current="selected ? 'true' : undefined" tabindex="0" @click="$emit('select')" @keydown.enter="$emit('select')">
     <div class="video-cover-wrap">
-      <a class="video-cover-link" :href="videoUrl" target="_blank" rel="noopener noreferrer">
+      <a class="video-cover-link" :href="videoUrl" target="_blank" rel="noopener noreferrer" @click.stop>
         <img class="video-cover" :src="coverUrl" :alt="card.title" loading="lazy" />
         <span v-if="card.rank" class="video-rank-badge">{{ card.rank }}</span>
         <span v-if="card.durationText" class="video-duration-badge">{{ card.durationText }}</span>
       </a>
     </div>
     <div class="video-info-row">
-      <a v-if="card.upAvatar" class="video-up-avatar-link" :href="upSpaceUrl" target="_blank" rel="noopener noreferrer">
+      <a v-if="card.upAvatar" class="video-up-avatar-link" :href="upSpaceUrl" target="_blank" rel="noopener noreferrer" @click.stop>
         <img class="video-up-avatar" :src="avatarUrl" :alt="card.upName" loading="lazy" />
       </a>
       <div class="video-meta">
-        <a class="video-title" :href="videoUrl" target="_blank" rel="noopener noreferrer" :title="card.title">{{ card.title }}</a>
+        <a class="video-title" :href="videoUrl" target="_blank" rel="noopener noreferrer" :title="card.title" @click.stop>{{ card.title }}</a>
         <div class="video-subtitle">
-          <a class="video-up" :href="upSpaceUrl" target="_blank" rel="noopener noreferrer">{{ card.upName }}</a>
+          <a class="video-up" :href="upSpaceUrl" target="_blank" rel="noopener noreferrer" @click.stop>{{ card.upName }}</a>
           <button v-if="card.upMid" class="video-up-unfollow" type="button" :disabled="isRelationPending || isRelationUnknown" @click.stop="$emit('toggle-follow')">{{ isRelationPending ? "处理中…" : isRelationUnknown ? "读取中…" : isFollowing ? "取消关注" : "关注" }}</button>
         </div>
         <div class="video-stats"><span>{{ playCountLabel }} 播放</span><span>·</span><span>{{ danmakuLabel }} 弹幕</span><span>·</span><span>{{ publishLabel }}</span></div>
       </div>
     </div>
     <div class="video-card-footer-actions">
-      <button class="footer-action footer-action-primary" type="button" :disabled="isPending" @click="onWantWatchClick">{{ isPending ? "处理中…" : isWantWatched ? "已想看" : "想看" }}</button>
-      <button class="footer-action" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">帮我读</button>
-      <button class="footer-action" type="button" :disabled="isPending" @click="$emit('dislike')">不想看</button>
+      <button class="footer-action footer-action-primary" type="button" :disabled="isPending" @click.stop="onWantWatchClick">{{ isPending ? "处理中…" : isWantWatched ? "已想看" : "想看" }}</button>
+      <button class="footer-action" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ transcriberState?.state === 'transcribing' ? '正在帮读' : '帮我读' }}</button>
+      <button class="footer-action" type="button" :disabled="isPending" @click.stop="$emit('dislike')">不想看</button>
     </div>
-    <div v-if="transcriberState" class="video-transcriber-result">
-      <span v-if="transcriberState.state === 'transcribing'" class="video-transcriber-status is-running"><span class="video-transcriber-dot"></span>正在转录</span>
-      <a v-else class="video-transcriber-status is-completed" :href="transcriberOutputUrl" target="_blank" rel="noopener noreferrer">查看帮读结果</a>
+    <div v-if="transcriberState?.state === 'completed'" class="video-transcriber-result">
+      <a class="video-transcriber-status is-completed" :href="transcriberOutputUrl" target="_blank" rel="noopener noreferrer">查看帮读结果</a>
       <div v-if="transcriberState.state === 'completed' && transcriberState.recommendation" class="video-recommendation">
         <div class="video-recommendation-heading">
           <strong class="recommendation-grade">{{ transcriberState.recommendation.grade }} · {{ transcriberState.recommendation.score }}分</strong>
@@ -54,12 +53,14 @@ const props = defineProps<{
   followingUpMap: Record<string, boolean>
   relationPendingMid: string
   transcriberState?: TranscriberCardState
+  selected?: boolean
 }>()
 const emit = defineEmits<{
   (event: "want-watch"): void
   (event: "dislike"): void
   (event: "toggle-follow"): void
   (event: "help-read"): void
+  (event: "select"): void
 }>()
 
 function onWantWatchClick(): void {

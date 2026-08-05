@@ -23,6 +23,7 @@ export interface PersistedInboxState {
   wantWatchCards: VideoDynamicCard[]
   hideWantWatch: boolean
   openVideoOnWantWatch: boolean
+  sidebarCollapsed: boolean
   viewMode: ViewMode
   trackedAnime: AnimeTrackingItem[]
 }
@@ -42,6 +43,7 @@ const EMPTY_STATE: PersistedInboxState = {
   wantWatchCards: [],
   hideWantWatch: false,
   openVideoOnWantWatch: true,
+  sidebarCollapsed: false,
   viewMode: "inbox",
   trackedAnime: [],
 }
@@ -207,6 +209,7 @@ function normalizeState(value: unknown): PersistedInboxState {
     wantWatchCards: normalizeCards(state.wantWatchCards),
     hideWantWatch: state.hideWantWatch === true,
     openVideoOnWantWatch: state.openVideoOnWantWatch !== false,
+    sidebarCollapsed: state.sidebarCollapsed === true,
     viewMode: "inbox",
     trackedAnime: normalizeTrackedAnime(state.trackedAnime),
   }

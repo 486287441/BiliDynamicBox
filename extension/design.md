@@ -1,25 +1,26 @@
-# ReadFlow 纸感画廊设计系统
+# ReadFlow Prism Glass 设计系统
 
-状态：Locked · 2026-08-02
+状态：Locked · 2026-08-03
 
 ## 设计方向
 
-- 类型：Editorial（编辑画廊）
-- 产品结构：Workbench；长内容页使用 Long Document；营销页延续 Workbench 的纸张与装帧语言。
-- 气质坐标：light / humanist-sans / warm。
-- 核心意象：一张温暖的纸、一层深墨字、一枚克制的朱砂印。视频封面像装裱在索引卡上的藏品，工具像编辑桌上的裁纸器与标签。
-- 不改变信息结构、五列密度、操作顺序或功能逻辑；精致感来自比例、纸色、细线、字重和动效，不来自额外装饰。
+- 类型：Atmospheric（清透玻璃工作台）
+- 产品结构：Workbench；长内容页使用 Long Document；营销页延续 Workbench 的通透层级与棱镜光语言。
+- 气质坐标：light / humanist-sans / cool。
+- 核心意象：一组悬浮于冷白空间中的清透玻璃板，青蓝表示决策，微量紫色只作为环境折射。内容封面保持高饱和，UI 本身安静、轻盈、边界清楚。
+- 不改变信息结构、五列密度、操作顺序或功能逻辑。玻璃只用于表达层级；文字、按钮和数据不能依赖背景模糊才能看清。
 
 ## 颜色
 
-- Paper `oklch(96.5% 0.018 82)`：页面底色。
-- Paper 2 `oklch(94% 0.022 80)`：控件、次级面。
-- Paper 3 `oklch(90.5% 0.026 78)`：选中前的安静填充。
-- Ink `oklch(23% 0.032 252)`：标题与主要信息。
-- Ink 2 `oklch(36% 0.028 250)`：正文。
-- Rule `oklch(77% 0.024 78)`：装帧线与边界。
-- Vermilion `oklch(52% 0.18 35)`：仅用于主要决策、当前状态与键盘焦点；控制在可视面积 5% 左右。
-- 暗色模式保留同一朱砂色相，纸张反转为暖墨黑，避免冷蓝玻璃感。
+- Paper `oklch(95% 0.025 232)`：冷白环境底色。
+- Paper 2 `oklch(91% 0.038 238)`：控件与环境层。
+- Paper 3 `oklch(86% 0.055 246)`：交互填充。
+- Ink `oklch(24% 0.055 257)`：标题与主要信息。
+- Ink 2 `oklch(39% 0.045 255)`：正文。
+- Glass `oklch(99% 0.008 232 / 62%)`：常规玻璃表面；强层级使用 78% 不透明度。
+- Cyan `oklch(50% 0.18 224)`：仅用于主要决策、当前状态与键盘焦点；控制在可视面积 5% 左右。
+- Prism `oklch(66% 0.17 300)`：只进入环境折射，不直接承载文字或按钮。
+- 暗色模式使用深海军蓝玻璃；青蓝色相保持一致，并将玻璃边界降到 18% 白色透明度。
 
 ## 字体与排版
 
@@ -31,9 +32,10 @@
 ## 形状与空间
 
 - 4 / 8 / 12 / 16 / 24 / 40 / 64 / 96 的紧凑编辑尺度。
-- 卡片圆角 10px，输入与分段控件圆角 4px，弹窗圆角 14px；头像、开关滑块和计数点允许完全圆形。
-- 卡片是“装裱单元”：一层边框、一张封面、一块说明、一条分段操作栏。禁止卡中再套无意义卡片。
-- 阴影只表达层级变化，默认以细线为主；悬停仅上移 1px。
+- 卡片圆角 16px，输入 12px，分段控件 10px，弹窗 22px；头像、开关滑块和计数点允许完全圆形。
+- 卡片是一块玻璃内容板：一层高光边界、一张封面、一块说明、一条操作栏。禁止卡中再套无意义玻璃卡。
+- 模糊分为 16 / 22 / 32px 三档，只用于卡片、工具层和弹窗；无 `backdrop-filter` 时必须回退为高不透明度实色。
+- 阴影只表达高度，内侧 1px 高光表达玻璃边缘；悬停最多上移 2px。
 
 ## 动效
 
@@ -47,15 +49,15 @@
 
 - 主操作沿用产品现有短动词：“想看”“帮我读”“不想看”。
 - CTA 直白、低噪声，不添加营销式感叹号。
-- 所有键盘可操作控件必须有立即出现的 2px 朱砂焦点环。
+- 所有键盘可操作控件必须有立即出现的 2px 青蓝焦点环。
 - 禁用态保持可辨认，透明度 0.5；加载态不得改变控件几何尺寸。
 
 ## 页面一致性
 
 ### 共享
 
-- 纸色、墨色、朱砂色、字体、细线、输入控件、分段控件、焦点态、短动效。
-- 顶栏与右侧 Dock 使用矩形编辑工具语言，不使用悬浮玻璃胶囊。
+- 冷白环境、深墨字、青蓝主色、紫色折射、字体、玻璃边界、输入控件、分段控件、焦点态和短动效。
+- 顶栏、右侧 Dock、工具条和弹窗共享同一套玻璃透明度、模糊与内高光；不使用无边界的透明文字。
 
 ### 允许不同
 
@@ -72,16 +74,16 @@
 
 ```css
 @theme {
-  --color-paper: oklch(96.5% 0.018 82);
-  --color-paper-2: oklch(94% 0.022 80);
-  --color-paper-3: oklch(90.5% 0.026 78);
-  --color-ink: oklch(23% 0.032 252);
-  --color-ink-2: oklch(36% 0.028 250);
-  --color-rule: oklch(77% 0.024 78);
-  --color-rule-2: oklch(86% 0.022 80);
-  --color-muted: oklch(48% 0.018 82);
-  --color-accent: oklch(52% 0.18 35);
-  --color-focus: oklch(36% 0.17 32);
+  --color-paper: oklch(95% 0.025 232);
+  --color-paper-2: oklch(91% 0.038 238);
+  --color-paper-3: oklch(86% 0.055 246);
+  --color-ink: oklch(24% 0.055 257);
+  --color-ink-2: oklch(39% 0.045 255);
+  --color-rule: oklch(83% 0.04 240 / 72%);
+  --color-rule-2: oklch(92% 0.025 232 / 70%);
+  --color-muted: oklch(52% 0.04 252);
+  --color-accent: oklch(50% 0.18 224);
+  --color-focus: oklch(48% 0.19 224);
   --font-display: "ReadFlow Shanggu", "ReadFlow Onest", sans-serif;
   --font-body: "ReadFlow Onest", "ReadFlow Shanggu", sans-serif;
   --spacing-xs: 0.5rem;
@@ -89,8 +91,8 @@
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2.5rem;
-  --radius-card: 0.625rem;
-  --radius-input: 0.25rem;
+  --radius-card: 1rem;
+  --radius-input: 0.75rem;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -103,14 +105,14 @@
 {
   "$schema": "https://design-tokens.github.io/community-group/format/",
   "color": {
-    "paper": { "$value": "oklch(96.5% 0.018 82)", "$type": "color" },
-    "paper-2": { "$value": "oklch(94% 0.022 80)", "$type": "color" },
-    "paper-3": { "$value": "oklch(90.5% 0.026 78)", "$type": "color" },
-    "ink": { "$value": "oklch(23% 0.032 252)", "$type": "color" },
-    "ink-2": { "$value": "oklch(36% 0.028 250)", "$type": "color" },
-    "rule": { "$value": "oklch(77% 0.024 78)", "$type": "color" },
-    "accent": { "$value": "oklch(52% 0.18 35)", "$type": "color" },
-    "focus": { "$value": "oklch(36% 0.17 32)", "$type": "color" }
+    "paper": { "$value": "oklch(95% 0.025 232)", "$type": "color" },
+    "paper-2": { "$value": "oklch(91% 0.038 238)", "$type": "color" },
+    "paper-3": { "$value": "oklch(86% 0.055 246)", "$type": "color" },
+    "ink": { "$value": "oklch(24% 0.055 257)", "$type": "color" },
+    "ink-2": { "$value": "oklch(39% 0.045 255)", "$type": "color" },
+    "rule": { "$value": "oklch(83% 0.04 240 / 72%)", "$type": "color" },
+    "accent": { "$value": "oklch(50% 0.18 224)", "$type": "color" },
+    "focus": { "$value": "oklch(48% 0.19 224)", "$type": "color" }
   },
   "font": {
     "display": { "$value": "ReadFlow Shanggu, ReadFlow Onest, sans-serif", "$type": "fontFamily" },
@@ -128,25 +130,25 @@
 
 ```css
 :root {
-  --background: 96.5% 0.018 82;
-  --foreground: 23% 0.032 252;
-  --card: 94% 0.022 80;
-  --card-foreground: 23% 0.032 252;
-  --popover: 94% 0.022 80;
-  --popover-foreground: 23% 0.032 252;
-  --primary: 52% 0.18 35;
-  --primary-foreground: 97% 0.016 82;
-  --secondary: 90.5% 0.026 78;
-  --secondary-foreground: 36% 0.028 250;
-  --muted: 86% 0.022 80;
-  --muted-foreground: 48% 0.018 82;
-  --accent: 52% 0.18 35;
-  --accent-foreground: 97% 0.016 82;
+  --background: 95% 0.025 232;
+  --foreground: 24% 0.055 257;
+  --card: 99% 0.008 232 / 62%;
+  --card-foreground: 24% 0.055 257;
+  --popover: 99% 0.006 232 / 78%;
+  --popover-foreground: 24% 0.055 257;
+  --primary: 50% 0.18 224;
+  --primary-foreground: 98% 0.008 232;
+  --secondary: 86% 0.055 246;
+  --secondary-foreground: 39% 0.045 255;
+  --muted: 92% 0.025 232;
+  --muted-foreground: 52% 0.04 252;
+  --accent: 50% 0.18 224;
+  --accent-foreground: 98% 0.008 232;
   --destructive: 50% 0.18 25;
   --destructive-foreground: 97% 0.016 82;
-  --border: 77% 0.024 78;
-  --input: 77% 0.024 78;
-  --ring: 36% 0.17 32;
-  --radius: 0.625rem;
+  --border: 83% 0.04 240 / 72%;
+  --input: 83% 0.04 240 / 72%;
+  --ring: 48% 0.19 224;
+  --radius: 1rem;
 }
 ```
