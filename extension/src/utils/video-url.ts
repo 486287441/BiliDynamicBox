@@ -3,6 +3,9 @@ import type { VideoDynamicCard } from "../domain/types"
 const FALLBACK_VIDEO_URL = "https://www.bilibili.com/"
 
 export function getVideoUrl(card: VideoDynamicCard): string {
+  if (card.url) {
+    return card.url
+  }
   if (card.videoBvid) {
     return `https://www.bilibili.com/video/${card.videoBvid}`
   }

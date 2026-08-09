@@ -16,6 +16,7 @@ const MAX_BUFFER_PAGES = 8
 const VIEWPORT_GAP_PX = 160
 const SCROLL_BUFFER_VIEWPORTS = 1
 const SCROLL_PREFETCH_VIEWPORTS = 2
+type CardPredicate = (card: VideoDynamicCard) => boolean
 
 interface InboxState {
   loading: boolean
@@ -136,11 +137,11 @@ export const useInboxStore = defineStore("inbox", {
       this.videoTotal = visibleCards.length
       this.groups = groupByDate(visibleCards)
     },
-    countVisibleCards(): number {
-      return this.allCards.filter((card) => !this.hiddenIds.has(card.dynamicId)).length
+    countVisibleCards(predicate?: CardPredicate): number {
+      return this.allCards.filter((card) => !this.hiddenIds.has(card.dynamicId) && (!predicate || predicate(card))).length
     },
-    needsMoreVisible(scrollRoot: HTMLElement | null, minVisible = MIN_VISIBLE_CARDS): boolean {
-      if (this.countVisibleCards() < minVisible) {
+    needsMoreVisible(scrollRoot: HTMLElement | null, minVisible = MIN_VISIBLE_CARDS, predicate?: CardPredicate): boolean {
+      if (this.countVisibleCards(predicate) < minVisible) {
         return true
       }
       if (!scrollRoot) {
@@ -192,7 +193,7 @@ export const useInboxStore = defineStore("inbox", {
     async ensureViewportFilled(
       scrollRoot: HTMLElement | null = null,
       maxPages = MAX_AUTOFILL_PAGES,
-      options?: { markForEnter?: boolean },
+      options?: { markForEnter?: boolean; predicate?: CardPredicate },
     ): Promise<void> {
       if (!this.hasMore || this.error || this.prefetching) {
         return
@@ -202,7 +203,7 @@ export const useInboxStore = defineStore("inbox", {
       try {
         let loadedPages = 0
         while (this.hasMore && loadedPages < maxPages) {
-          if (!this.needsMoreVisible(scrollRoot)) {
+          if (!this.needsMoreVisible(scrollRoot, MIN_VISIBLE_CARDS, options?.predicate)) {
             break
           }
           await this.load(false, { markForEnter: options?.markForEnter })
@@ -215,16 +216,16 @@ export const useInboxStore = defineStore("inbox", {
         this.prefetching = false
       }
     },
-    async bootstrap(scrollRoot: HTMLElement | null = null): Promise<void> {
+    async bootstrap(scrollRoot: HTMLElement | null = null, predicate?: CardPredicate): Promise<void> {
       await this.load(true)
-      await this.ensureViewportFilled(scrollRoot)
+      await this.ensureViewportFilled(scrollRoot, MAX_AUTOFILL_PAGES, { predicate })
       await this.maintainScrollBuffer(scrollRoot)
     },
-    async refresh(scrollRoot: HTMLElement | null = null): Promise<void> {
-      await this.bootstrap(scrollRoot)
+    async refresh(scrollRoot: HTMLElement | null = null, predicate?: CardPredicate): Promise<void> {
+      await this.bootstrap(scrollRoot, predicate)
     },
-    async fillAfterHide(scrollRoot: HTMLElement | null = null): Promise<void> {
-      await this.ensureViewportFilled(scrollRoot, 10, { markForEnter: true })
+    async fillAfterHide(scrollRoot: HTMLElement | null = null, predicate?: CardPredicate): Promise<void> {
+      await this.ensureViewportFilled(scrollRoot, MAX_AUTOFILL_PAGES, { markForEnter: true, predicate })
       await this.maintainScrollBuffer(scrollRoot)
     },
     removeCard(dynamicId: string) {

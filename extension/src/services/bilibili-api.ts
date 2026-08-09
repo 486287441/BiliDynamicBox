@@ -21,6 +21,13 @@ export interface MomentsPageResult {
   hasMore: boolean
 }
 
+function openBilibiliLogin(): void {
+  if (typeof window === "undefined") return
+  const loginUrl = new URL("https://passport.bilibili.com/login")
+  loginUrl.searchParams.set("gourl", window.location.href)
+  window.location.assign(loginUrl.toString())
+}
+
 export async function fetchMomentsPage(offset = ""): Promise<MomentsPageResult> {
   const url = new URL("https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all")
   url.searchParams.set("type", "video")
@@ -37,6 +44,10 @@ export async function fetchMomentsPage(offset = ""): Promise<MomentsPageResult> 
   }
 
   const payload = (await response.json()) as MomentsApiResponse
+  if (payload.code === -101) {
+    openBilibiliLogin()
+    throw new Error("请先登录 B 站账号")
+  }
   if (typeof payload.code === "number" && payload.code !== 0) {
     throw new Error(`Moments API error code: ${payload.code}`)
   }
@@ -450,6 +461,7 @@ function libraryCard(input: {
   upName?: string
   upAvatar?: string
   publishAt?: number
+  url?: string
   keyPrefix: string
 }): VideoDynamicCard {
   const aid = String(input.aid ?? "")
@@ -469,6 +481,7 @@ function libraryCard(input: {
     upName: input.upName || "未知 UP",
     upAvatar: input.upAvatar || "",
     publishAt: Number(input.publishAt ?? 0),
+    url: input.url,
   }
 }
 
@@ -574,12 +587,58 @@ export async function fetchWatchLaterVideos(): Promise<LibraryPageResult> {
   }
 }
 
-export async function fetchHistoryVideos(max = 0, viewAt = 0): Promise<LibraryPageResult> {
+interface HistoryVideoDetails {
+  view: number
+  danmaku: number
+  upAvatar: string
+}
+
+async function fetchHistoryVideoDetails(bvid: string, aid: number): Promise<HistoryVideoDetails> {
+  const url = new URL("https://api.bilibili.com/x/web-interface/view")
+  if (bvid) url.searchParams.set("bvid", bvid)
+  else if (aid > 0) url.searchParams.set("aid", String(aid))
+  else return { view: 0, danmaku: 0, upAvatar: "" }
+  try {
+    const response = await pageFetch(url.toString(), { headers: { Referer: "https://www.bilibili.com/" } })
+    if (!response.ok) throw new Error(`视频详情请求失败: ${response.status}`)
+    const payload = await response.json() as {
+      code?: number
+      data?: {
+        owner?: { face?: string }
+        stat?: { view?: number; danmaku?: number }
+      }
+    }
+    if (payload.code !== 0) throw new Error(`视频详情接口错误: ${payload.code}`)
+    return {
+      view: Number(payload.data?.stat?.view ?? 0),
+      danmaku: Number(payload.data?.stat?.danmaku ?? 0),
+      upAvatar: payload.data?.owner?.face ?? "",
+    }
+  } catch {
+    // A deleted or unavailable video must not make the whole history page fail.
+    return { view: 0, danmaku: 0, upAvatar: "" }
+  }
+}
+
+async function enrichHistoryDetails(cards: VideoDynamicCard[]): Promise<void> {
+  let nextIndex = 0
+  const concurrency = Math.min(6, cards.length)
+  await Promise.all(Array.from({ length: concurrency }, async () => {
+    while (nextIndex < cards.length) {
+      const card = cards[nextIndex++]
+      const details = await fetchHistoryVideoDetails(card.videoBvid, Number(card.videoAid))
+      if (details.view > 0) card.playCount = details.view
+      if (details.danmaku > 0) card.danmakuCount = details.danmaku
+      if (details.upAvatar) card.upAvatar = details.upAvatar
+    }
+  }))
+}
+
+export async function fetchHistoryVideos(max = 0, viewAt = 0, business = ""): Promise<LibraryPageResult> {
   const url = new URL("https://api.bilibili.com/x/web-interface/history/cursor")
   url.searchParams.set("max", String(max))
   url.searchParams.set("view_at", String(viewAt))
-  url.searchParams.set("business", "")
-  url.searchParams.set("ps", "30")
+  url.searchParams.set("business", business)
   const payload = await readApiJson<{
     data?: {
       list?: Array<{
@@ -587,29 +646,44 @@ export async function fetchHistoryVideos(max = 0, viewAt = 0): Promise<LibraryPa
         cover?: string
         author_name?: string
         author_mid?: number
+        author_face?: string
         duration?: number
         view_at?: number
-        history?: { oid?: number; bvid?: string }
+        uri?: string
+        stat?: { view?: number; danmaku?: number }
+        history?: { oid?: number; bvid?: string; business?: string }
       }>
-      cursor?: { max?: number; view_at?: number }
+      cursor?: { max?: number; view_at?: number; business?: string; ps?: number }
     }
   }>(url.toString())
   const items = payload.data?.list ?? []
+  const cards = items.map((item) => libraryCard({
+    aid: item.history?.oid,
+    bvid: item.history?.bvid,
+    title: item.title,
+    cover: item.cover,
+    duration: item.duration,
+    upMid: item.author_mid,
+    upName: item.author_name,
+    upAvatar: item.author_face,
+    play: item.stat?.view,
+    danmaku: item.stat?.danmaku,
+    publishAt: item.view_at,
+    url: item.uri,
+    keyPrefix: `history:${item.history?.business || "video"}`,
+  }))
+  await enrichHistoryDetails(cards)
+  const cursor = payload.data?.cursor
+  const nextMax = Number(cursor?.max ?? 0)
+  const nextViewAt = Number(cursor?.view_at ?? 0)
+  const nextBusiness = cursor?.business ?? ""
+  const cursorAdvanced = nextMax !== max || nextViewAt !== viewAt || nextBusiness !== business
   return {
-    cards: items.map((item) => libraryCard({
-      aid: item.history?.oid,
-      bvid: item.history?.bvid,
-      title: item.title,
-      cover: item.cover,
-      duration: item.duration,
-      upMid: item.author_mid,
-      upName: item.author_name,
-      publishAt: item.view_at,
-      keyPrefix: "history",
-    })),
-    hasMore: items.length > 0 && Boolean(payload.data?.cursor?.max || payload.data?.cursor?.view_at),
-    nextMax: Number(payload.data?.cursor?.max ?? 0),
-    nextViewAt: Number(payload.data?.cursor?.view_at ?? 0),
+    cards,
+    hasMore: items.length > 0 && cursorAdvanced && Number(cursor?.ps ?? items.length) > 0,
+    nextMax,
+    nextViewAt,
+    nextBusiness,
   }
 }
 
@@ -670,6 +744,48 @@ export async function addVideoToDefaultFavorite(card: VideoDynamicCard): Promise
   if (result.code !== 0) {
     throw new Error(result.message || `收藏接口错误: ${result.code}`)
   }
+}
+
+export async function removeVideoFromFavorite(card: VideoDynamicCard, mediaId: number): Promise<void> {
+  const aid = Number(card.videoAid)
+  if (!Number.isFinite(aid) || aid <= 0 || !Number.isFinite(mediaId) || mediaId <= 0) {
+    throw new Error("收藏信息无效")
+  }
+  const csrf = getCsrfTokenFromCookie()
+  if (!csrf) throw new Error("请先登录 B 站")
+  const body = new URLSearchParams()
+  body.set("media_id", String(mediaId))
+  body.set("resources", `${aid}:2`)
+  body.set("platform", "web")
+  body.set("csrf", csrf)
+  const response = await fetch("https://api.bilibili.com/x/v3/fav/resource/batch-del", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+    body: body.toString(),
+  })
+  if (!response.ok) throw new Error(`取消收藏失败: ${response.status}`)
+  const result = (await response.json()) as CommonApiResponse
+  if (result.code !== 0) throw new Error(result.message || `取消收藏失败: ${result.code}`)
+}
+
+export async function removeVideoFromWatchLater(card: VideoDynamicCard): Promise<void> {
+  const aid = Number(card.videoAid)
+  if (!Number.isFinite(aid) || aid <= 0) throw new Error("视频 aid 无效")
+  const csrf = getCsrfTokenFromCookie()
+  if (!csrf) throw new Error("请先登录 B 站")
+  const body = new URLSearchParams()
+  body.set("aid", String(aid))
+  body.set("csrf", csrf)
+  const response = await fetch("https://api.bilibili.com/x/v2/history/toview/del", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+    body: body.toString(),
+  })
+  if (!response.ok) throw new Error(`移出稍后再看失败: ${response.status}`)
+  const result = (await response.json()) as CommonApiResponse
+  if (result.code !== 0) throw new Error(result.message || `移出稍后再看失败: ${result.code}`)
 }
 
 /** 通过 B 站 PC 首页官方负反馈通道提交“内容不感兴趣”。 */

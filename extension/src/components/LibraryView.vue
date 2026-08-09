@@ -35,10 +35,14 @@
         :following-up-map="followingUpMap"
         :relation-pending-mid="relationPendingMid"
         :transcriber-state="transcriberStateMap[card.dynamicId]"
+        :action-mode="kind === 'favorites' ? 'favorites' : kind === 'watchlater' ? 'watchlater' : 'default'"
         @want-watch="$emit('want-watch', card)"
         @help-read="$emit('help-read', card)"
         @dislike="$emit('dislike', card)"
         @toggle-follow="$emit('toggle-follow', card)"
+        @add-favorite="$emit('add-favorite', card)"
+        @remove-favorite="$emit('remove-favorite', card)"
+        @remove-watch-later="$emit('remove-watch-later', card)"
       />
     </TransitionGroup>
 
@@ -78,6 +82,9 @@ defineEmits<{
   (event: "help-read", card: VideoDynamicCard): void
   (event: "dislike", card: VideoDynamicCard): void
   (event: "toggle-follow", card: VideoDynamicCard): void
+  (event: "add-favorite", card: VideoDynamicCard): void
+  (event: "remove-favorite", card: VideoDynamicCard): void
+  (event: "remove-watch-later", card: VideoDynamicCard): void
 }>()
 
 const title = computed(() => ({ favorites: "我的收藏", history: "观看历史", watchlater: "稍后再看" })[props.kind])

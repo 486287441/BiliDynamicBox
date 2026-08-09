@@ -7,8 +7,6 @@
       :trash-count="trash.count"
       :search-query="searchQuery"
       :search-scope="searchScope"
-      :min-duration-minutes="minDurationMinutes"
-      :publish-after-date="publishAfterDate"
       :hide-want-watch="hideWantWatch"
       :open-video-on-want-watch="openVideoOnWantWatch"
       :sidebar-collapsed="sidebarCollapsed"
@@ -23,8 +21,6 @@
       @update:view-mode="onViewModeUpdate"
       @update:search-query="searchQuery = $event"
       @update:search-scope="searchScope = $event"
-      @update:min-duration-minutes="onMinDurationMinutesUpdate"
-      @update:publish-after-date="onPublishAfterDateUpdate"
       @update:category-filter="onCategoryFilterUpdate"
       @save-ai-key="onSaveAiKey"
     />
@@ -60,7 +56,7 @@
       <p v-else-if="isFillingList" class="inbox-load-more-tip">正在补足列表...</p>
       <p v-else-if="!inbox.loading && !isFillingList && displayGroups.length === 0">
         {{
-          (searchScope === "dynamics" && normalizedQuery) || minDurationSeconds > 0
+          (searchScope === "dynamics" && normalizedQuery) || minDurationSeconds > 0 || publishAfterDate
             ? "没有匹配到筛选条件的视频。"
             : "暂无可展示的视频动态。"
         }}
@@ -106,7 +102,7 @@ import VideoDetailPanel from "../components/VideoDetailPanel.vue"
 import type { ViewMode } from "../domain/view-mode"
 import { inferContentCategory, type ContentCategoryFilter } from "../domain/content-category"
 import { getDateGroupKey } from "../domain/group-by-date"
-import { normalizePublishAfterDate } from "../domain/publish-date-filter"
+import { getPublishAfterTimestamp, normalizePublishAfterDate } from "../domain/publish-date-filter"
 import type { DateGroup, VideoDynamicCard } from "../domain/types"
 import InboxGroup from "../components/InboxGroup.vue"
 import { useDecisionStore } from "../store/decision"
@@ -127,8 +123,8 @@ const props = withDefaults(defineProps<{ embedded?: boolean; feedVisible?: boole
 })
 const emit = defineEmits<{
   (event: "settings-change", settings: {
-    minDurationMinutes: string
-    publishAfterDate: string
+    dynamicMinDurationMinutes: string
+    dynamicPublishAfterDate: string
     hideWantWatch: boolean
     openVideoOnWantWatch: boolean
     sidebarCollapsed: boolean
@@ -144,8 +140,8 @@ const transcriber = useTranscriberStore()
 const searchQuery = ref("")
 const searchScope = ref<SearchScope>("dynamics")
 const viewMode = ref<ViewMode>(persistedState.viewMode)
-const minDurationMinutes = ref(persistedState.minDurationMinutes)
-const publishAfterDate = ref(persistedState.publishAfterDate)
+const minDurationMinutes = ref(persistedState.dynamicMinDurationMinutes)
+const publishAfterDate = ref(persistedState.dynamicPublishAfterDate)
 const hideWantWatch = ref(persistedState.hideWantWatch)
 const openVideoOnWantWatch = ref(persistedState.openVideoOnWantWatch)
 const sidebarCollapsed = ref(persistedState.sidebarCollapsed)
@@ -163,7 +159,7 @@ let transcriberPollTimer = 0
 const toolbarRef = ref<{ openToolsPanel: () => void } | null>(null)
 
 function reloadMoments(): void {
-  void inbox.refresh(getScrollRoot())
+  void inbox.refresh(getScrollRoot(), passesDisplayFilters)
 }
 
 function openDynamicTools(): void {
@@ -172,6 +168,20 @@ function openDynamicTools(): void {
 
 function setCategoryFilter(value: ContentCategoryFilter): void {
   onCategoryFilterUpdate(value)
+}
+
+function setMinDuration(value: string): void {
+  onMinDurationMinutesUpdate(value)
+}
+
+function setPublishAfter(value: string): void {
+  onPublishAfterDateUpdate(value)
+}
+
+function setSearchQuery(value: string): void {
+  searchScope.value = "dynamics"
+  searchQuery.value = value
+  void inbox.fillAfterHide(getScrollRoot(), passesDisplayFilters)
 }
 
 function transitionCardLayout(update: () => void): void {
@@ -185,7 +195,7 @@ function transitionCardLayout(update: () => void): void {
   })
 }
 
-defineExpose({ openSettings: openDynamicTools, refreshFeed: reloadMoments, setCategoryFilter })
+defineExpose({ openSettings: openDynamicTools, refreshFeed: reloadMoments, setCategoryFilter, setMinDuration, setPublishAfter, setSearchQuery })
 
 function onSharedTabSelect(tab: HomeTabValue): void {
   if (tab === "following") return
@@ -226,6 +236,7 @@ const hasActiveDisplayFilters = computed(
   () =>
     (searchScope.value === "dynamics" && normalizedQuery.value.length > 0) ||
     minDurationSeconds.value > 0 ||
+    publishAfterDate.value.length > 0 ||
     hideWantWatch.value ||
     categoryFilter.value !== "all",
 )
@@ -249,6 +260,9 @@ function passesDisplayFilters(item: VideoDynamicCard): boolean {
     minDurationSeconds.value <= 0 ||
     item.durationSeconds >= minDurationSeconds.value
   if (!matchesDuration) {
+    return false
+  }
+  if (publishAfterDate.value && item.publishAt < getPublishAfterTimestamp(publishAfterDate.value)) {
     return false
   }
   const resolvedCategory = classification.labels[item.dynamicId] ?? inferContentCategory(item)
@@ -333,7 +347,7 @@ function runPendingFillAfterLeave(): void {
     return
   }
   pendingFillAfterLeave -= 1
-  void inbox.fillAfterHide(getScrollRoot())
+  void inbox.fillAfterHide(getScrollRoot(), passesDisplayFilters)
 }
 
 function onCardLeaveComplete(payload: { dynamicId: string; groupKey: string }): void {
@@ -386,7 +400,7 @@ function onToggleHideWantWatch(): void {
   writePersistedState({ hideWantWatch: hideWantWatch.value })
   emitSettingsChange()
   showToast(hideWantWatch.value ? "已隐藏标记为“想看”的视频" : "已显示标记为“想看”的视频")
-  void inbox.fillAfterHide(getScrollRoot())
+  void inbox.fillAfterHide(getScrollRoot(), passesDisplayFilters)
 }
 
 function onToggleOpenVideoOnWantWatch(): void {
@@ -417,10 +431,10 @@ function onMinDurationMinutesUpdate(value: string): void {
   }
   const normalized = trimmed ? String(numeric) : ""
   minDurationMinutes.value = normalized
-  writePersistedState({ minDurationMinutes: normalized })
+  writePersistedState({ dynamicMinDurationMinutes: normalized })
   emitSettingsChange()
   showToast(normalized ? `已只显示 ${normalized} 分钟及以上的视频` : "已清除时长筛选")
-  void inbox.fillAfterHide(getScrollRoot())
+  void inbox.fillAfterHide(getScrollRoot(), passesDisplayFilters)
 }
 
 function onPublishAfterDateUpdate(value: string): void {
@@ -430,15 +444,16 @@ function onPublishAfterDateUpdate(value: string): void {
     return
   }
   publishAfterDate.value = normalized
-  writePersistedState({ publishAfterDate: normalized })
+  writePersistedState({ dynamicPublishAfterDate: normalized })
   emitSettingsChange()
   showToast(normalized ? `已只显示 ${normalized} 当天及之后的视频` : "已清除日期筛选")
+  void inbox.fillAfterHide(getScrollRoot(), passesDisplayFilters)
 }
 
 function emitSettingsChange(): void {
   emit("settings-change", {
-    minDurationMinutes: minDurationMinutes.value,
-    publishAfterDate: publishAfterDate.value,
+    dynamicMinDurationMinutes: minDurationMinutes.value,
+    dynamicPublishAfterDate: publishAfterDate.value,
     hideWantWatch: hideWantWatch.value,
     openVideoOnWantWatch: openVideoOnWantWatch.value,
     sidebarCollapsed: sidebarCollapsed.value,
@@ -454,7 +469,7 @@ function onCategoryFilterUpdate(value: ContentCategoryFilter): void {
   if (categoryFilter.value === value) return
   transitionCardLayout(() => { categoryFilter.value = value })
   classification.ensureClassified(inbox.allCards)
-  void inbox.fillAfterHide(getScrollRoot())
+  void inbox.fillAfterHide(getScrollRoot(), passesDisplayFilters)
 }
 
 async function onSaveAiKey(apiKey: string): Promise<void> {
@@ -495,7 +510,7 @@ function onViewModeUpdate(mode: ViewMode): void {
   viewMode.value = mode
   if (mode !== "up-filter") writePersistedState({ viewMode: mode })
   if (mode === "inbox") {
-    void inbox.fillAfterHide(getScrollRoot())
+    void inbox.fillAfterHide(getScrollRoot(), passesDisplayFilters)
     return
   }
   upFilter.refreshWantedVideos()
@@ -550,7 +565,7 @@ onMounted(() => {
       void transcriber.refresh().catch(() => undefined)
     }
   }, 5000)
-  void inbox.bootstrap(root)
+  void inbox.bootstrap(root, passesDisplayFilters)
   if (viewMode.value === "up-filter") {
     void upFilter.bootstrap()
   }

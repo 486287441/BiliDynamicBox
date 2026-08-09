@@ -1,7 +1,7 @@
 <template>
   <main ref="shellRef" class="inbox-shell home-shell" :class="{ 'detail-open': selectedCard, 'sidebar-collapsed': sidebarCollapsed }">
     <AppNav active="moments" :trash-count="0" :collapsed="sidebarCollapsed" @update:collapsed="updateSidebar" @navigate-tab="() => undefined" @navigate-library="() => undefined" @open-tools="showPreviewToast('筛选设置已打开')" />
-    <WorkspaceToolbar :category="category" @update:category="updateCategory" @open-tools="showPreviewToast('筛选设置已打开')" />
+    <WorkspaceToolbar :category="category" scope="dynamics" min-duration-minutes="" publish-after-date="" @update:category="updateCategory" />
 
     <section class="inbox-content">
       <article class="group-block">

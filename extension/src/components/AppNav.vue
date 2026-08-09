@@ -79,7 +79,7 @@ function toggleCollapsed(): void {
 }
 const primaryItems = computed(() => [
   { label: "首页", icon: "mingcute:home-5-line", activeIcon: "mingcute:home-5-fill", href: "https://www.bilibili.com/", active: props.active === "home", tab: "recommended" as HomeTabValue },
-  { label: "动态", icon: "mingcute:group-3-line", activeIcon: "mingcute:group-3-fill", href: "https://www.bilibili.com/?readflow=following", active: props.active === "moments", tab: "following" as HomeTabValue },
+  { label: "动态", icon: "tabler:windmill", activeIcon: "tabler:windmill-filled", href: "https://www.bilibili.com/?readflow=following", active: props.active === "moments", tab: "following" as HomeTabValue },
   { label: "追番", icon: "mingcute:tv-2-line", activeIcon: "mingcute:tv-2-fill", href: "https://www.bilibili.com/?readflow=tracking", active: props.active === "tracking", tab: "tracking" as HomeTabValue },
 ])
 

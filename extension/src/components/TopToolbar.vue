@@ -45,18 +45,6 @@
             </header>
 
             <div class="settings-modal-body">
-              <section id="settings-panel-home" v-show="activeSettingsSection === 'home'" class="settings-section" aria-label="首页设置">
-                <div class="settings-control">
-                  <label for="settings-publish-after">首页发布日期</label>
-                  <div class="settings-inline settings-date-row">
-                    <input id="settings-publish-after" v-model="draftPublishAfterDate" class="settings-input" type="date" @keydown.enter="applyPublishAfterDate" />
-                    <button class="settings-button primary" type="button" @click="applyPublishAfterDate">应用</button>
-                    <button class="settings-button" type="button" @click="clearPublishAfterDate">清除</button>
-                  </div>
-                  <small>仅影响首页的推荐、热门和排行；显示所选日期当天及之后发布的视频。</small>
-                </div>
-              </section>
-
               <section id="settings-panel-dynamics" v-show="activeSettingsSection === 'dynamics'" class="settings-section" aria-label="动态设置">
                 <div class="settings-control-grid">
                   <div class="settings-control">
@@ -76,26 +64,10 @@
                       <input class="settings-input" type="search" :value="searchQuery" :placeholder="searchScope === 'bilibili' ? '搜索 B 站，按回车打开结果' : '搜索视频标题或 UP 主'" @input="onSearchInput" @keydown="onSearchKeydown" />
                     </div>
                   </div>
-                  <div class="settings-control">
-                    <label>动态内容分类</label>
-                    <div class="settings-chip-grid">
-                      <button v-for="option in categoryFilterOptions" :key="option.value" type="button" :class="{ active: categoryFilter === option.value }" @click="$emit('update:categoryFilter', option.value)">{{ option.label }}</button>
-                    </div>
-                    <small>优先使用 AI 分类；未配置时根据标题与标签在本地分类。</small>
-                  </div>
                 </div>
               </section>
 
               <section id="settings-panel-global" v-show="activeSettingsSection === 'global'" class="settings-section" aria-label="跨页面设置">
-                <div class="settings-control">
-                  <label for="settings-duration">视频最小时长（分钟）</label>
-                  <div class="settings-inline">
-                    <input id="settings-duration" v-model="draftDurationMinutes" class="settings-input" type="number" min="0.5" step="0.5" placeholder="例如 10" @keydown.enter="applyDuration" />
-                    <button class="settings-button primary" type="button" @click="applyDuration">应用</button>
-                    <button class="settings-button" type="button" @click="clearDuration">清除</button>
-                  </div>
-                  <small>影响首页推荐、热门、排行以及动态收件箱。</small>
-                </div>
                 <button class="settings-toggle-row" type="button" @click="$emit('toggle-hide-want-watch')">
                   <span><strong>处理后隐藏“想看”卡片</strong><small>影响首页与动态列表，只保留尚未处理的视频</small></span>
                   <i :class="{ active: hideWantWatch }"><b></b></i>
@@ -138,12 +110,12 @@
 
 <script setup lang="ts">
 import { Icon } from "@iconify/vue"
-import { computed, ref, watch } from "vue"
-import { CONTENT_CATEGORY_FILTER_LABELS, type ContentCategoryFilter } from "../domain/content-category"
+import { computed, ref } from "vue"
+import type { ContentCategoryFilter } from "../domain/content-category"
 import { VIEW_MODE_LABELS, type ViewMode } from "../domain/view-mode"
 
 export type SearchScope = "dynamics" | "bilibili"
-type SettingsSectionId = "home" | "dynamics" | "global" | "ai" | "data"
+type SettingsSectionId = "dynamics" | "global" | "ai" | "data"
 
 const settingsSections: Array<{
   value: SettingsSectionId
@@ -153,9 +125,8 @@ const settingsSections: Array<{
   description: string
   icon: string
 }> = [
-  { value: "home", label: "首页", caption: "推荐、热门与排行", scope: "仅影响首页", description: "管理首页视频流专用的显示条件。", icon: "mingcute:home-4-line" },
   { value: "dynamics", label: "动态", caption: "收件箱、搜索与分类", scope: "仅影响动态", description: "管理动态收件箱的视图、搜索和内容分类。", icon: "mingcute:planet-line" },
-  { value: "global", label: "跨页面", caption: "通用筛选与处理行为", scope: "影响多个页面", description: "管理首页、动态及其他视频卡片共用的行为。", icon: "mingcute:adjustment-line" },
+  { value: "global", label: "跨页面", caption: "通用处理与界面行为", scope: "影响多个页面", description: "管理首页、动态及其他视频卡片共用的处理与界面行为。", icon: "mingcute:adjustment-line" },
   { value: "ai", label: "AI 分类", caption: "DeepSeek 连接", scope: "服务于动态分类", description: "配置动态内容分类所需的 AI 服务。", icon: "mingcute:sparkles-2-line" },
   { value: "data", label: "数据与入口", caption: "稍后再看和管理", scope: "通用入口", description: "访问稍后再看、垃圾箱和 UP 主筛选。", icon: "mingcute:folder-open-2-line" },
 ]
@@ -165,8 +136,6 @@ const props = defineProps<{
   trashCount: number
   searchQuery: string
   searchScope: SearchScope
-  minDurationMinutes: string
-  publishAfterDate: string
   hideWantWatch: boolean
   openVideoOnWantWatch: boolean
   sidebarCollapsed: boolean
@@ -183,8 +152,6 @@ const emit = defineEmits<{
   (event: "update:viewMode", value: ViewMode): void
   (event: "update:searchQuery", value: string): void
   (event: "update:searchScope", value: SearchScope): void
-  (event: "update:minDurationMinutes", value: string): void
-  (event: "update:publishAfterDate", value: string): void
   (event: "update:categoryFilter", value: ContentCategoryFilter): void
   (event: "save-ai-key", value: string): void
 }>()
@@ -192,16 +159,10 @@ const viewModeOptions: Array<{ value: ViewMode; label: string }> = [
   { value: "inbox", label: VIEW_MODE_LABELS.inbox },
   { value: "up-filter", label: VIEW_MODE_LABELS["up-filter"] },
 ]
-const categoryFilterOptions = (Object.entries(CONTENT_CATEGORY_FILTER_LABELS) as Array<[ContentCategoryFilter, string]>).map(([value, label]) => ({ value, label }))
 const toolsPanelOpen = ref(false)
-const activeSettingsSection = ref<SettingsSectionId>("home")
+const activeSettingsSection = ref<SettingsSectionId>("dynamics")
 const activeSettingsMeta = computed(() => settingsSections.find((section) => section.value === activeSettingsSection.value) ?? settingsSections[0])
 const draftApiKey = ref("")
-// Vue automatically casts v-model values from number inputs to numbers at runtime.
-const draftDurationMinutes = ref<string | number>(props.minDurationMinutes)
-const draftPublishAfterDate = ref(props.publishAfterDate)
-watch(() => props.minDurationMinutes, (value) => { draftDurationMinutes.value = value })
-watch(() => props.publishAfterDate, (value) => { draftPublishAfterDate.value = value })
 function openToolsPanel(): void { toolsPanelOpen.value = true }
 function close(): void { toolsPanelOpen.value = false }
 function setViewMode(mode: ViewMode): void { emit("update:viewMode", mode) }
@@ -214,20 +175,6 @@ function onSearchKeydown(event: KeyboardEvent): void {
   event.preventDefault()
   const value = props.searchQuery.trim()
   if (value) window.open("https://search.bilibili.com/all?keyword=" + encodeURIComponent(value), "_blank", "noopener,noreferrer")
-}
-function applyDuration(): void {
-  emit("update:minDurationMinutes", String(draftDurationMinutes.value).trim())
-}
-function clearDuration(): void {
-  draftDurationMinutes.value = ""
-  emit("update:minDurationMinutes", "")
-}
-function applyPublishAfterDate(): void {
-  emit("update:publishAfterDate", draftPublishAfterDate.value.trim())
-}
-function clearPublishAfterDate(): void {
-  draftPublishAfterDate.value = ""
-  emit("update:publishAfterDate", "")
 }
 function saveAiKey(): void {
   if (!draftApiKey.value.trim() && !props.aiConfigured) return

@@ -20,10 +20,19 @@
         <div class="video-stats"><span>{{ playCountLabel }} 播放</span><span>·</span><span>{{ danmakuLabel }} 弹幕</span><span>·</span><span>{{ publishLabel }}</span></div>
       </div>
     </div>
-    <div class="video-card-footer-actions">
+    <div v-if="actionMode === 'default'" class="video-card-footer-actions">
       <button class="footer-action footer-action-primary" type="button" :disabled="isPending" @click.stop="onWantWatchClick">{{ isPending ? "处理中…" : isWantWatched ? "已想看" : "想看" }}</button>
-      <button class="footer-action" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ transcriberState?.state === 'transcribing' ? '正在帮读' : '帮我读' }}</button>
+      <button class="footer-action footer-action-help-read" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ transcriberState?.state === 'transcribing' ? '正在帮读' : '帮我读' }}</button>
       <button class="footer-action" type="button" :disabled="isPending" @click.stop="$emit('dislike')">不想看</button>
+    </div>
+    <div v-else-if="actionMode === 'favorites'" class="video-card-footer-actions library-card-actions">
+      <button class="footer-action footer-action-help-read" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ transcriberState?.state === 'transcribing' ? '正在帮读' : '帮我读' }}</button>
+      <button class="footer-action" type="button" :disabled="isPending" @click.stop="$emit('remove-favorite')">{{ isPending ? "处理中…" : "取消收藏" }}</button>
+    </div>
+    <div v-else class="video-card-footer-actions library-card-actions">
+      <button class="footer-action" type="button" :disabled="isPending" @click.stop="$emit('add-favorite')">加入收藏</button>
+      <button class="footer-action footer-action-help-read" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ transcriberState?.state === 'transcribing' ? '正在帮读' : '帮我读' }}</button>
+      <button class="footer-action" type="button" :disabled="isPending" @click.stop="$emit('remove-watch-later')">{{ isPending ? "处理中…" : "移出稍后再看" }}</button>
     </div>
     <div v-if="transcriberState?.state === 'completed'" class="video-transcriber-result">
       <a class="video-transcriber-status is-completed" :href="transcriberOutputUrl" target="_blank" rel="noopener noreferrer">查看帮读结果</a>
@@ -54,6 +63,7 @@ const props = defineProps<{
   relationPendingMid: string
   transcriberState?: TranscriberCardState
   selected?: boolean
+  actionMode?: "default" | "favorites" | "watchlater"
 }>()
 const emit = defineEmits<{
   (event: "want-watch"): void
@@ -61,7 +71,12 @@ const emit = defineEmits<{
   (event: "toggle-follow"): void
   (event: "help-read"): void
   (event: "select"): void
+  (event: "add-favorite"): void
+  (event: "remove-favorite"): void
+  (event: "remove-watch-later"): void
 }>()
+
+const actionMode = computed(() => props.actionMode ?? "default")
 
 function onWantWatchClick(): void {
   if (props.openVideoOnWantWatch) openVideoInNewTab(props.card)

@@ -17,8 +17,10 @@ export interface PersistedInboxState {
   dislikedDynamicIds: string[]
   trashItems: TrashItem[]
   upDislikeCounts: Record<string, number>
-  minDurationMinutes: string
-  publishAfterDate: string
+  homeMinDurationMinutes: string
+  homePublishAfterDate: string
+  dynamicMinDurationMinutes: string
+  dynamicPublishAfterDate: string
   wantWatchDynamicIds: string[]
   wantWatchCards: VideoDynamicCard[]
   hideWantWatch: boolean
@@ -37,8 +39,10 @@ const EMPTY_STATE: PersistedInboxState = {
   dislikedDynamicIds: [],
   trashItems: [],
   upDislikeCounts: {},
-  minDurationMinutes: "",
-  publishAfterDate: "",
+  homeMinDurationMinutes: "",
+  homePublishAfterDate: "",
+  dynamicMinDurationMinutes: "",
+  dynamicPublishAfterDate: "",
   wantWatchDynamicIds: [],
   wantWatchCards: [],
   hideWantWatch: false,
@@ -121,6 +125,7 @@ function normalizeCard(value: unknown): VideoDynamicCard | null {
     upName: typeof card.upName === "string" ? card.upName : "",
     upAvatar: typeof card.upAvatar === "string" ? card.upAvatar : "",
     publishAt: card.publishAt,
+    url: typeof card.url === "string" ? card.url : undefined,
   }
 }
 
@@ -198,13 +203,20 @@ function normalizeState(value: unknown): PersistedInboxState {
   if (!value || typeof value !== "object") {
     return { ...EMPTY_STATE }
   }
-  const state = value as Partial<PersistedInboxState>
+  const state = value as Partial<PersistedInboxState> & {
+    minDurationMinutes?: unknown
+    publishAfterDate?: unknown
+  }
+  const legacyDuration = normalizeMinDurationMinutes(state.minDurationMinutes)
+  const legacyPublishAfter = normalizePublishAfterDate(state.publishAfterDate)
   return {
     dislikedDynamicIds: normalizeIdList(state.dislikedDynamicIds),
     trashItems: normalizeTrashItems(state.trashItems),
     upDislikeCounts: normalizeUpCounts(state.upDislikeCounts),
-    minDurationMinutes: normalizeMinDurationMinutes(state.minDurationMinutes),
-    publishAfterDate: normalizePublishAfterDate(state.publishAfterDate),
+    homeMinDurationMinutes: normalizeMinDurationMinutes(state.homeMinDurationMinutes) || legacyDuration,
+    homePublishAfterDate: normalizePublishAfterDate(state.homePublishAfterDate) || legacyPublishAfter,
+    dynamicMinDurationMinutes: normalizeMinDurationMinutes(state.dynamicMinDurationMinutes) || legacyDuration,
+    dynamicPublishAfterDate: normalizePublishAfterDate(state.dynamicPublishAfterDate) || legacyPublishAfter,
     wantWatchDynamicIds: normalizeIdList(state.wantWatchDynamicIds),
     wantWatchCards: normalizeCards(state.wantWatchCards),
     hideWantWatch: state.hideWantWatch === true,

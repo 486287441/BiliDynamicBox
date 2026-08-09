@@ -44,6 +44,7 @@ export interface VideoDynamicCard {
   upName: string
   upAvatar: string
   publishAt: number
+  url?: string
   rank?: number
   tag?: string
 }
@@ -67,4 +68,5 @@ export interface LibraryPageResult {
   hasMore: boolean
   nextMax?: number
   nextViewAt?: number
+  nextBusiness?: string
 }

@@ -10,7 +10,16 @@
       @navigate-library="navigateLibrary"
       @navigate-tab="selectTab"
     />
-    <WorkspaceToolbar :category="categoryFilter" @update:category="setCategoryFilter" @open-tools="openSettings" />
+    <WorkspaceToolbar
+      :category="categoryFilter"
+      :scope="activeTab === 'following' ? 'dynamics' : 'home'"
+      :min-duration-minutes="activeTab === 'following' ? dynamicMinDurationMinutes : homeMinDurationMinutes"
+      :publish-after-date="activeTab === 'following' ? dynamicPublishAfterDate : homePublishAfterDate"
+      @update:category="setCategoryFilter"
+      @update:min-duration-minutes="setScopedMinDuration"
+      @update:publish-after-date="setScopedPublishAfter"
+      @update:search-query="setScopedSearchQuery"
+    />
 
     <LibraryView
       v-if="libraryKind"
@@ -21,7 +30,7 @@
       :loading="libraryLoading"
       :error="libraryError"
       :has-more="libraryHasMore"
-      :pending-map="decision.pendingMap"
+      :pending-map="libraryPendingMap"
       :want-watch-map="wantWatchMap"
       :open-video-on-want-watch="openVideoOnWantWatch"
       :following-up-map="decision.followingUpMap"
@@ -34,6 +43,9 @@
       @help-read="onHelpRead"
       @dislike="onDislike"
       @toggle-follow="onToggleFollow"
+      @add-favorite="onAddLibraryFavorite"
+      @remove-favorite="onRemoveLibraryFavorite"
+      @remove-watch-later="onRemoveLibraryWatchLater"
     />
 
     <DynamicFeed
@@ -125,6 +137,9 @@ import {
   fetchPopularVideosPage,
   fetchRankingVideos,
   fetchWatchLaterVideos,
+  addVideoToDefaultFavorite,
+  removeVideoFromFavorite,
+  removeVideoFromWatchLater,
 } from "../services/bilibili-api"
 import { editTrackedAnime, fetchAnimeByName, refreshTrackedAnime } from "../services/anime-tracking"
 import { readPersistedState, writePersistedState } from "../services/storage"
@@ -150,15 +165,24 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const hasMore = ref(true)
 const pageIndex = ref(1)
-const minDurationMinutes = ref(persisted.minDurationMinutes)
-const publishAfterDate = ref(persisted.publishAfterDate)
+const homeMinDurationMinutes = ref(persisted.homeMinDurationMinutes)
+const homePublishAfterDate = ref(persisted.homePublishAfterDate)
+const dynamicMinDurationMinutes = ref(persisted.dynamicMinDurationMinutes)
+const dynamicPublishAfterDate = ref(persisted.dynamicPublishAfterDate)
 const hideWantWatch = ref(persisted.hideWantWatch)
 const openVideoOnWantWatch = ref(persisted.openVideoOnWantWatch)
 const sidebarCollapsed = ref(persisted.sidebarCollapsed)
 const trackedAnime = ref<AnimeTrackingItem[]>(persisted.trackedAnime)
 const trackingLoading = ref(false)
 const trackingError = ref("")
-const followingFeedRef = ref<{ openSettings: () => void; refreshFeed: () => void; setCategoryFilter: (value: ContentCategoryFilter) => void } | null>(null)
+const followingFeedRef = ref<{
+  openSettings: () => void
+  refreshFeed: () => void
+  setCategoryFilter: (value: ContentCategoryFilter) => void
+  setMinDuration: (value: string) => void
+  setPublishAfter: (value: string) => void
+  setSearchQuery: (value: string) => void
+} | null>(null)
 const categoryFilter = ref<ContentCategoryFilter>("all")
 const selectedCard = ref<VideoDynamicCard | null>(null)
 const shellRef = ref<HTMLElement | null>(null)
@@ -173,32 +197,34 @@ interface LibraryState {
   page: number
   historyMax: number
   historyViewAt: number
+  historyBusiness: string
 }
 function createLibraryState(): LibraryState {
-  return { cards: [], loading: false, loaded: false, error: "", hasMore: false, page: 1, historyMax: 0, historyViewAt: 0 }
+  return { cards: [], loading: false, loaded: false, error: "", hasMore: false, page: 1, historyMax: 0, historyViewAt: 0, historyBusiness: "" }
 }
 const libraryStates = reactive<Record<LibraryKind, LibraryState>>({
   favorites: createLibraryState(),
   history: createLibraryState(),
   watchlater: createLibraryState(),
 })
+const libraryActionPending = reactive<Record<string, boolean>>({})
 let transcriberPollTimer = 0
 let scrollRoot: HTMLElement | null = null
 let scrollFrame = 0
 let autoFilling = false
 
 const PREFETCH_DISTANCE_PX = 1600
-const MAX_AUTO_PAGES_PER_PASS = 4
+const MAX_AUTO_PAGES_PER_PASS = 12
 
-const publishAfterTimestamp = computed(() => getPublishAfterTimestamp(publishAfterDate.value))
+const publishAfterTimestamp = computed(() => getPublishAfterTimestamp(homePublishAfterDate.value))
 const visibleCards = computed(() => {
   const normalized = query.value.trim().toLocaleLowerCase()
-  const minimumSeconds = Number(minDurationMinutes.value) * 60
+  const minimumSeconds = Number(homeMinDurationMinutes.value) * 60
   return cards.value.filter((card) => {
     if (decision.dislikedIds.has(card.dynamicId)) return false
     if (hideWantWatch.value && decision.wantWatchIds.has(card.dynamicId)) return false
     if (Number.isFinite(minimumSeconds) && minimumSeconds > 0 && card.durationSeconds < minimumSeconds) return false
-    if (publishAfterDate.value && card.publishAt < publishAfterTimestamp.value) return false
+    if (homePublishAfterDate.value && card.publishAt < publishAfterTimestamp.value) return false
     if (categoryFilter.value !== "all" && inferContentCategory(card) !== categoryFilter.value) return false
     if (!normalized) return true
     return card.title.toLocaleLowerCase().includes(normalized) || card.upName.toLocaleLowerCase().includes(normalized)
@@ -214,6 +240,7 @@ const libraryHasMore = computed(() => activeLibraryState.value?.hasMore ?? false
 const libraryTranscriberStateMap = computed(() => Object.fromEntries(
   libraryCards.value.map((card) => [card.dynamicId, transcriber.getForCard(card)]),
 ))
+const libraryPendingMap = computed(() => ({ ...decision.pendingMap, ...libraryActionPending }))
 
 async function loadLibrary(reset: boolean, requestedKind: LibraryKind | null = libraryKind.value): Promise<void> {
   const kind = requestedKind
@@ -228,6 +255,7 @@ async function loadLibrary(reset: boolean, requestedKind: LibraryKind | null = l
       state.hasMore = false
       state.historyMax = 0
       state.historyViewAt = 0
+      state.historyBusiness = ""
     }
     if (kind === "favorites") {
       if (!favoriteFolders.value.length) {
@@ -247,7 +275,7 @@ async function loadLibrary(reset: boolean, requestedKind: LibraryKind | null = l
       state.cards = result.cards
       state.hasMore = false
     } else {
-      const result = await fetchHistoryVideos(state.historyMax, state.historyViewAt)
+      const result = await fetchHistoryVideos(state.historyMax, state.historyViewAt, state.historyBusiness)
       if (reset) state.cards = result.cards
       else {
         const known = new Set(state.cards.map((card) => card.dynamicId))
@@ -256,6 +284,7 @@ async function loadLibrary(reset: boolean, requestedKind: LibraryKind | null = l
       state.hasMore = result.hasMore
       state.historyMax = result.nextMax ?? 0
       state.historyViewAt = result.nextViewAt ?? 0
+      state.historyBusiness = result.nextBusiness ?? ""
     }
     state.page += 1
     state.loaded = true
@@ -361,7 +390,7 @@ async function fillScrollBuffer(): Promise<void> {
   autoFilling = true
   try {
     let loadedPages = 0
-    while (hasMore.value && isNearFeedEnd() && loadedPages < MAX_AUTO_PAGES_PER_PASS) {
+    while (hasMore.value && (visibleCards.value.length < 12 || isNearFeedEnd()) && loadedPages < MAX_AUTO_PAGES_PER_PASS) {
       await loadMore()
       loadedPages += 1
       await nextTick()
@@ -502,8 +531,31 @@ function setCategoryFilter(value: ContentCategoryFilter): void {
     transitionCardLayout(() => { categoryFilter.value = value })
   }
   void nextTick(() => {
-    if (activeTab.value !== "following" && activeTab.value !== "tracking" && visibleCards.value.length < 12 && hasMore.value) void loadMore()
+    if (activeTab.value !== "following" && activeTab.value !== "tracking") scheduleAutoFill()
   })
+}
+function setScopedMinDuration(value: string): void {
+  if (activeTab.value === "following") {
+    dynamicMinDurationMinutes.value = value
+    followingFeedRef.value?.setMinDuration(value)
+    return
+  }
+  homeMinDurationMinutes.value = value
+  writePersistedState({ homeMinDurationMinutes: value })
+  scheduleAutoFill()
+}
+function setScopedPublishAfter(value: string): void {
+  if (activeTab.value === "following") {
+    dynamicPublishAfterDate.value = value
+    followingFeedRef.value?.setPublishAfter(value)
+    return
+  }
+  homePublishAfterDate.value = value
+  writePersistedState({ homePublishAfterDate: value })
+  scheduleAutoFill()
+}
+function setScopedSearchQuery(value: string): void {
+  if (activeTab.value === "following") followingFeedRef.value?.setSearchQuery(value)
 }
 function setSidebarCollapsed(value: boolean): void {
   if (sidebarCollapsed.value === value) return
@@ -511,14 +563,14 @@ function setSidebarCollapsed(value: boolean): void {
   writePersistedState({ sidebarCollapsed: value })
 }
 function onSettingsChange(settings: {
-  minDurationMinutes: string
-  publishAfterDate: string
+  dynamicMinDurationMinutes: string
+  dynamicPublishAfterDate: string
   hideWantWatch: boolean
   openVideoOnWantWatch: boolean
   sidebarCollapsed: boolean
 }): void {
-  minDurationMinutes.value = settings.minDurationMinutes
-  publishAfterDate.value = settings.publishAfterDate
+  dynamicMinDurationMinutes.value = settings.dynamicMinDurationMinutes
+  dynamicPublishAfterDate.value = settings.dynamicPublishAfterDate
   hideWantWatch.value = settings.hideWantWatch
   openVideoOnWantWatch.value = settings.openVideoOnWantWatch
   if (sidebarCollapsed.value !== settings.sidebarCollapsed) setSidebarCollapsed(settings.sidebarCollapsed)
@@ -527,6 +579,29 @@ function onSettingsChange(settings: {
   }
 }
 async function onWantWatch(card: VideoDynamicCard): Promise<void> { await decision.markWantWatch(card) }
+async function runLibraryAction(card: VideoDynamicCard, action: () => Promise<void>, successMessage: string, removeFrom?: LibraryKind): Promise<void> {
+  if (libraryActionPending[card.dynamicId]) return
+  libraryActionPending[card.dynamicId] = true
+  try {
+    await action()
+    if (removeFrom) libraryStates[removeFrom].cards = libraryStates[removeFrom].cards.filter((item) => item.dynamicId !== card.dynamicId)
+    showToast(successMessage)
+  } catch (caught) {
+    showToast(caught instanceof Error ? caught.message : "操作失败", "error")
+  } finally {
+    delete libraryActionPending[card.dynamicId]
+  }
+}
+function onAddLibraryFavorite(card: VideoDynamicCard): void {
+  void runLibraryAction(card, () => addVideoToDefaultFavorite(card), "已加入收藏")
+}
+function onRemoveLibraryFavorite(card: VideoDynamicCard): void {
+  const mediaId = activeFavoriteFolderId.value
+  void runLibraryAction(card, () => removeVideoFromFavorite(card, mediaId), "已取消收藏", "favorites")
+}
+function onRemoveLibraryWatchLater(card: VideoDynamicCard): void {
+  void runLibraryAction(card, () => removeVideoFromWatchLater(card), "已移出稍后再看", "watchlater")
+}
 function onHelpRead(card: VideoDynamicCard): void {
   transcriber.markTranscribing(card)
   window.setTimeout(() => void transcriber.refresh().catch(() => undefined), 1500)
