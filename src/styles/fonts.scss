@@ -1,6 +1,6 @@
-/* ReadFlow typography: friendly Latin forms from Onest, clear CJK forms from Shanggu Sans SC. */
+/* BillNext typography: friendly Latin forms from Onest, clear CJK forms from Shanggu Sans SC. */
 @font-face {
-  font-family: "ReadFlow Onest";
+  font-family: "BillNext Onest";
   src: url("../../assets/fonts/Onest[wght].woff2") format("woff2");
   font-style: normal;
   font-weight: 100 900;
@@ -8,7 +8,7 @@
 }
 
 @font-face {
-  font-family: "ReadFlow Shanggu";
+  font-family: "BillNext Shanggu";
   src: url("../../assets/fonts/ShangguSansSC-Common.woff2") format("woff2");
   font-style: normal;
   font-weight: 250 900;
@@ -16,11 +16,11 @@
 }
 
 :root {
-  --rf-font-sans: "ReadFlow Onest", "ReadFlow Shanggu", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --rf-font-display: "ReadFlow Shanggu", "ReadFlow Onest", "PingFang SC", sans-serif;
-  --rf-font-meta: "ReadFlow Onest", "ReadFlow Shanggu", sans-serif;
-  --rf-font-weight-regular: 400;
-  --rf-font-weight-medium: 500;
-  --rf-font-weight-semibold: 600;
-  --rf-font-weight-bold: 700;
+  --billnext-font-sans: "BillNext Onest", "BillNext Shanggu", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --billnext-font-display: "BillNext Shanggu", "BillNext Onest", "PingFang SC", sans-serif;
+  --billnext-font-meta: "BillNext Onest", "BillNext Shanggu", sans-serif;
+  --billnext-font-weight-regular: 400;
+  --billnext-font-weight-medium: 500;
+  --billnext-font-weight-semibold: 600;
+  --billnext-font-weight-bold: 700;
 }

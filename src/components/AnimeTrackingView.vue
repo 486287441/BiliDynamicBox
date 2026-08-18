@@ -21,8 +21,7 @@
       </label>
       <div v-if="matchResult" class="anime-match-result">
         <span>已选最优</span><a :href="matchResult.url" target="_blank" rel="noopener noreferrer">{{ matchResult.title }}</a>
-        <small v-if="matchResult.sourceType === 'official'">B 站官方番剧 · 优先使用正版播放页</small>
-        <small v-else>{{ matchResult.author ? `${matchResult.author} · ` : "" }}{{ formatCount(matchResult.playCount) }}播放 · {{ formatCount(matchResult.danmakuCount) }}弹幕<span v-if="matchResult.durationSeconds"> · {{ formatDuration(matchResult.durationSeconds) }}</span></small>
+        <small>{{ matchResult.author ? `${matchResult.author} · ` : "" }}{{ formatCount(matchResult.playCount) }}播放 · {{ formatCount(matchResult.danmakuCount) }}弹幕<span v-if="matchResult.durationSeconds"> · {{ formatDuration(matchResult.durationSeconds) }}</span></small>
       </div>
       <p v-if="matchError" class="anime-match-error">{{ matchError }}</p>
       <p class="anime-editor-hint">会自动从 Bangumi 匹配封面、总集数、放送状态和最新集数。</p>
@@ -55,8 +54,7 @@
           </label>
           <div v-if="matchResult" class="anime-match-result">
             <span>已选最优</span><a :href="matchResult.url" target="_blank" rel="noopener noreferrer">{{ matchResult.title }}</a>
-            <small v-if="matchResult.sourceType === 'official'">B 站官方番剧 · 优先使用正版播放页</small>
-            <small v-else>{{ matchResult.author ? `${matchResult.author} · ` : "" }}{{ formatCount(matchResult.playCount) }}播放 · {{ formatCount(matchResult.danmakuCount) }}弹幕<span v-if="matchResult.durationSeconds"> · {{ formatDuration(matchResult.durationSeconds) }}</span></small>
+            <small>{{ matchResult.author ? `${matchResult.author} · ` : "" }}{{ formatCount(matchResult.playCount) }}播放 · {{ formatCount(matchResult.danmakuCount) }}弹幕<span v-if="matchResult.durationSeconds"> · {{ formatDuration(matchResult.durationSeconds) }}</span></small>
           </div>
           <p v-if="matchError" class="anime-match-error">{{ matchError }}</p>
           <p v-if="error" class="anime-add-error">{{ error }}</p>

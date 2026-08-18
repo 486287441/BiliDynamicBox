@@ -2,12 +2,12 @@
   <aside
     class="billnext-sidebar"
     :class="{ 'is-collapsed': collapsed }"
-    aria-label="billnext 主导航"
+    aria-label="BillNext 主导航"
   >
     <button class="billnext-collapse-toggle" type="button" :aria-label="collapsed ? '展开导航' : '收起导航'" :title="collapsed ? '展开导航' : '收起导航'" @click.stop="toggleCollapsed">
       <Icon :icon="collapsed ? 'mingcute:right-line' : 'mingcute:left-line'" />
     </button>
-    <a class="billnext-brand" href="https://www.bilibili.com/" title="billnext 首页">
+    <a class="billnext-brand" href="https://www.bilibili.com/" title="BillNext 首页">
       <span class="billnext-brand-mark"><Icon icon="mingcute:bilibili-line" /></span>
       <span><strong>BillNext</strong></span>
     </a>
@@ -28,16 +28,16 @@
     </nav>
 
     <nav class="billnext-secondary-nav" aria-label="个人内容">
-      <a href="https://www.bilibili.com/?readflow=native" title="切换为原版 B 站">
+      <a href="https://www.bilibili.com/?billnext=native" title="切换为原版 B 站">
         <Icon icon="mingcute:transfer-4-line" /><span>原版 B 站</span>
       </a>
-      <a href="https://www.bilibili.com/?readflow=watchlater" title="稍后再看" :class="{ active: active === 'watchlater' }" @click.prevent="$emit('navigate-library', 'watchlater')">
+      <a href="https://www.bilibili.com/?billnext=watchlater" title="稍后再看" :class="{ active: active === 'watchlater' }" @click.prevent="$emit('navigate-library', 'watchlater')">
         <Icon :icon="active === 'watchlater' ? 'mingcute:bookmark-fill' : 'mingcute:bookmark-line'" /><span>稍后再看</span>
       </a>
-      <a href="https://www.bilibili.com/?readflow=favorites" title="收藏" :class="{ active: active === 'favorites' }" @click.prevent="$emit('navigate-library', 'favorites')">
+      <a href="https://www.bilibili.com/?billnext=favorites" title="收藏" :class="{ active: active === 'favorites' }" @click.prevent="$emit('navigate-library', 'favorites')">
         <Icon :icon="active === 'favorites' ? 'mingcute:star-fill' : 'mingcute:star-line'" /><span>收藏</span>
       </a>
-      <a href="https://www.bilibili.com/?readflow=history" title="历史" :class="{ active: active === 'history' }" @click.prevent="$emit('navigate-library', 'history')">
+      <a href="https://www.bilibili.com/?billnext=history" title="历史" :class="{ active: active === 'history' }" @click.prevent="$emit('navigate-library', 'history')">
         <Icon :icon="active === 'history' ? 'mingcute:time-fill' : 'mingcute:time-line'" /><span>历史</span>
       </a>
       <button type="button" title="设置" @click="$emit('open-tools')">
@@ -92,9 +92,9 @@ function toggleCollapsed(): void {
 }
 const primaryItems = computed(() => [
   { label: "首页", icon: "mingcute:home-5-line", activeIcon: "mingcute:home-5-fill", href: "https://www.bilibili.com/", active: props.active === "home", tab: "recommended" as HomeTabValue },
-  { label: "动态", icon: "tabler:windmill", activeIcon: "tabler:windmill-filled", href: "https://www.bilibili.com/?readflow=following", active: props.active === "moments", tab: "following" as HomeTabValue },
-  { label: "追番", icon: "mingcute:tv-2-line", activeIcon: "mingcute:tv-2-fill", href: "https://www.bilibili.com/?readflow=tracking", active: props.active === "tracking", tab: "tracking" as HomeTabValue },
-  { label: "清单", icon: "mingcute:list-check-3-line", activeIcon: "mingcute:list-check-3-fill", href: "https://www.bilibili.com/?readflow=checklist", active: props.active === "checklist", tab: "checklist" as HomeTabValue },
+  { label: "动态", icon: "tabler:windmill", activeIcon: "tabler:windmill-filled", href: "https://www.bilibili.com/?billnext=following", active: props.active === "moments", tab: "following" as HomeTabValue },
+  { label: "追番", icon: "mingcute:tv-2-line", activeIcon: "mingcute:tv-2-fill", href: "https://www.bilibili.com/?billnext=tracking", active: props.active === "tracking", tab: "tracking" as HomeTabValue },
+  { label: "清单", icon: "mingcute:list-check-3-line", activeIcon: "mingcute:list-check-3-fill", href: "https://www.bilibili.com/?billnext=checklist", active: props.active === "checklist", tab: "checklist" as HomeTabValue },
 ])
 
 function onPrimaryClick(event: MouseEvent, tab: HomeTabValue): void {

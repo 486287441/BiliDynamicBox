@@ -1,6 +1,6 @@
 /* Hallmark · genre: atmospheric · macrostructure: Workbench · design-system: design.md · designed-as-app
  * theme: custom · vibe: "clear prism glass, quiet cyan, deep ink" · paper: oklch(95% 0.025 232) · accent: oklch(50% 0.18 224)
- * display: ReadFlow Shanggu · body: ReadFlow Onest + ReadFlow Shanggu · axes: light / humanist-sans / cool
+ * display: BillNext Shanggu · body: BillNext Onest + BillNext Shanggu · axes: light / humanist-sans / cool
  * Hallmark · pre-emit critique: P5 H4 E5 S5 R5 V4 · contrast: pass (40–41) · nav: N7 tool rail · footer: n/a · slop: pass (42–45)
  * honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · icons: pass (30)
  */
@@ -46,7 +46,7 @@
 
   --font-display: "SF Pro Display", "Inter", "PingFang SC", "Helvetica Neue", sans-serif;
   --font-body: "SF Pro Text", "Inter", "PingFang SC", "Helvetica Neue", sans-serif;
-  --font-outlier: "ReadFlow Onest", ui-monospace, monospace;
+  --font-outlier: "BillNext Onest", ui-monospace, monospace;
   --display-weight: 650;
   --tracking-display: -0.035em;
   --tracking-label: 0.08em;

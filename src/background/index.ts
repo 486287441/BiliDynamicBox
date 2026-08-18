@@ -2,8 +2,8 @@ import type { ContentCategory } from "../domain/content-category"
 
 declare const chrome: any
 
-const SETTINGS_KEY = "bewly:ai-category-settings-v1"
-const CACHE_KEY = "bewly:ai-category-cache-v1"
+const SETTINGS_KEY = "billnext:ai-category-settings-v1"
+const CACHE_KEY = "billnext:ai-category-cache-v1"
 const MODEL = "deepseek-v4-flash"
 const CACHE_TTL_MS = 180 * 24 * 60 * 60 * 1000
 const MAX_CACHE_ENTRIES = 4000

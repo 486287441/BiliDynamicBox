@@ -1,11 +1,11 @@
 <template>
-  <Teleport to="#bewly-inbox-root">
+  <Teleport to="#billnext-inbox-root">
     <Transition name="settings-window">
       <div v-if="toolsPanelOpen" class="settings-modal-mask" @click.self="close">
         <section class="settings-modal-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
           <aside class="settings-sidebar">
             <div class="settings-sidebar-heading">
-              <span class="settings-modal-kicker">READFLOW</span>
+              <span class="settings-modal-kicker">BillNext</span>
               <h2 id="settings-title">设置</h2>
               <p>阅读与动态偏好</p>
             </div>
@@ -73,7 +73,7 @@
 
               <section id="settings-panel-data" v-show="activeSettingsSection === 'data'" class="settings-section" aria-label="数据与入口">
                 <div class="settings-entry-grid">
-                  <a href="https://www.bilibili.com/?readflow=watchlater"><Icon icon="mingcute:carplay-line" /><span><strong>稍后再看</strong><small>通用入口 · 查看已标记的视频</small></span></a>
+                  <a href="https://www.bilibili.com/?billnext=watchlater"><Icon icon="mingcute:carplay-line" /><span><strong>稍后再看</strong><small>通用入口 · 查看已标记的视频</small></span></a>
                   <button type="button" @click="$emit('open-trash')"><Icon icon="mingcute:delete-2-line" /><span><strong>垃圾箱</strong><small>通用数据 · {{ trashCount }} 条记录</small></span></button>
                   <button type="button" @click="setViewMode('up-filter')"><Icon icon="mingcute:user-search-line" /><span><strong>UP 主筛选</strong><small>动态工具 · 管理关注与创作者</small></span></button>
                 </div>

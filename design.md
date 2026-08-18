@@ -1,4 +1,4 @@
-# ReadFlow Prism Glass 设计系统
+# BillNext Prism Glass 设计系统
 
 状态：Locked · 2026-08-03
 
@@ -24,9 +24,9 @@
 
 ## 字体与排版
 
-- 展示标题：ReadFlow Shanggu，650，紧凑字距；用于页面名、分组标题与设置标题。
-- 正文：ReadFlow Onest + ReadFlow Shanggu，400–600。
-- 元数据：ReadFlow Onest，启用 tabular numerals；字号小但对比明确，不用过度灰化。
+- 展示标题：BillNext Shanggu，650，紧凑字距；用于页面名、分组标题与设置标题。
+- 正文：BillNext Onest + BillNext Shanggu，400–600。
+- 元数据：BillNext Onest，启用 tabular numerals；字号小但对比明确，不用过度灰化。
 - 标题依靠字重、间距与细线建立层级，不依赖渐变文字、全大写或彩色发光。
 
 ## 形状与空间
@@ -86,8 +86,8 @@
   --color-muted: oklch(52% 0.04 252);
   --color-accent: oklch(50% 0.18 224);
   --color-focus: oklch(48% 0.19 224);
-  --font-display: "ReadFlow Shanggu", "ReadFlow Onest", sans-serif;
-  --font-body: "ReadFlow Onest", "ReadFlow Shanggu", sans-serif;
+  --font-display: "BillNext Shanggu", "BillNext Onest", sans-serif;
+  --font-body: "BillNext Onest", "BillNext Shanggu", sans-serif;
   --spacing-xs: 0.5rem;
   --spacing-sm: 0.75rem;
   --spacing-md: 1rem;
@@ -117,8 +117,8 @@
     "focus": { "$value": "oklch(48% 0.19 224)", "$type": "color" }
   },
   "font": {
-    "display": { "$value": "ReadFlow Shanggu, ReadFlow Onest, sans-serif", "$type": "fontFamily" },
-    "body": { "$value": "ReadFlow Onest, ReadFlow Shanggu, sans-serif", "$type": "fontFamily" }
+    "display": { "$value": "BillNext Shanggu, BillNext Onest, sans-serif", "$type": "fontFamily" },
+    "body": { "$value": "BillNext Onest, BillNext Shanggu, sans-serif", "$type": "fontFamily" }
   },
   "duration": {
     "micro": { "$value": "100ms", "$type": "duration" },

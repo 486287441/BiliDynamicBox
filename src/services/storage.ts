@@ -4,8 +4,8 @@ import type { ViewMode } from "../domain/view-mode"
 import { normalizePublishAfterDate } from "../domain/publish-date-filter"
 import type { BilibiliAvailabilityStatus, BilibiliCompleteness, ChecklistAvailability } from "../domain/checklist"
 
-const LEGACY_DISLIKED_KEY = "bewly:disliked-dynamic-ids"
-const STORAGE_KEY = "bewly:inbox-state"
+const LEGACY_DISLIKED_KEY = "billnext:disliked-dynamic-ids"
+const STORAGE_KEY = "billnext:inbox-state"
 const STORAGE_VERSION = 1
 
 export interface TrashItem {

@@ -1,5 +1,5 @@
-const FETCH_REQUEST_EVENT = "bewly:fetch-request"
-const FETCH_RESPONSE_EVENT = "bewly:fetch-response"
+const FETCH_REQUEST_EVENT = "billnext:fetch-request"
+const FETCH_RESPONSE_EVENT = "billnext:fetch-response"
 const PAGE_FETCH_TIMEOUT_MS = 30000
 
 interface PageFetchResponseDetail {

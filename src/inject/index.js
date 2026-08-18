@@ -1,6 +1,6 @@
-const HISTORY_EVENT_NAME = "bewly-history-change"
-const FETCH_REQUEST_EVENT = "bewly:fetch-request"
-const FETCH_RESPONSE_EVENT = "bewly:fetch-response"
+const HISTORY_EVENT_NAME = "billnext-history-change"
+const FETCH_REQUEST_EVENT = "billnext:fetch-request"
+const FETCH_RESPONSE_EVENT = "billnext:fetch-response"
 
 function injectFunction(origin, keys, callback) {
   const targets = Array.isArray(keys) ? keys : [keys]

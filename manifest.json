@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "BiliNext - B站重构：全新首页、内容管理与自动追番",
+  "name": "BillNext - B站重构：全新首页、内容管理与自动追番",
+  "short_name": "BillNext",
   "version": "2.0.0",
   "description": "重做 B 站首页与动态：自动追番抓取更新、聚合推荐与关注，一键想看、不想看。",
   "icons": {

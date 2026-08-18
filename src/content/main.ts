@@ -7,7 +7,7 @@ import {
   markContainerMounted,
 } from "./page-replace"
 
-const HISTORY_EVENT_NAME = "bewly-history-change"
+const HISTORY_EVENT_NAME = "billnext-history-change"
 
 let lastUrl = window.location.href
 let observerStarted = false
@@ -26,7 +26,7 @@ async function bootstrap(): Promise<void> {
   bootstrapPending = true
 
   if (isTargetMomentsPage()) {
-    window.location.replace("https://www.bilibili.com/?readflow=following")
+    window.location.replace("https://www.bilibili.com/?billnext=following")
     bootstrapPending = false
     return
   }
@@ -73,7 +73,7 @@ function startUrlObserver(): void {
       return
     }
 
-    const container = document.getElementById("bewly-inbox-root")
+    const container = document.getElementById("billnext-inbox-root")
     if (!(container instanceof HTMLElement) || !isContainerMounted(container)) {
       scheduleBootstrap()
     }
@@ -110,7 +110,7 @@ window.setInterval(() => {
   if (!isTargetPage()) {
     return
   }
-  const container = document.getElementById("bewly-inbox-root")
+  const container = document.getElementById("billnext-inbox-root")
   if (!(container instanceof HTMLElement) || !isContainerMounted(container)) {
     scheduleBootstrap()
   }

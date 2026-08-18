@@ -15,8 +15,8 @@ const PAGE_SIZE = 20
 const REQUEST_INTERVAL_MS = 2500
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 const CACHE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000
-const CACHE_KEY = "bewly:up-creator-cache-v2"
-const RISK_BLOCK_KEY = "bewly:up-risk-blocked-until-v1"
+const CACHE_KEY = "billnext:up-creator-cache-v2"
+const RISK_BLOCK_KEY = "billnext:up-risk-blocked-until-v1"
 const RISK_COOLDOWN_MS = 10 * 60 * 1000
 
 interface CachedCreatorBundle {

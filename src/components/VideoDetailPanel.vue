@@ -18,7 +18,7 @@
 
       <section class="video-detail-summary">
         <div class="video-detail-summary-title">
-          <Icon icon="mingcute:sparkles-2-line" /><strong>AI 摘要</strong><small>由 billnext 生成</small>
+          <Icon icon="mingcute:sparkles-2-line" /><strong>AI 摘要</strong><small>由 BillNext 生成</small>
           <a v-if="completed" :href="transcriberOutputUrl" target="_blank" rel="noopener noreferrer">查看帮读结果</a>
         </div>
         <p>{{ summaryText }}</p>
@@ -69,7 +69,7 @@ const helpReadLabel = computed(() => completed.value ? "帮读已完成" : trans
 const summaryText = computed(() => {
   if (recommendationReason.value) return recommendationReason.value
   if (transcribing.value) return "正在提取视频内容并整理重点，完成后会在这里呈现可快速扫读的摘要。"
-  return "点击“帮我读”后，billnext 会提炼视频的核心观点、信息密度和观看建议，帮助你在播放前完成判断。"
+  return "点击“帮我读”后，BillNext 会提炼视频的核心观点、信息密度和观看建议，帮助你在播放前完成判断。"
 })
 function formatCount(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "0"

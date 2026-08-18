@@ -17,7 +17,7 @@ export function getScrollBufferPx(scrollRoot: HTMLElement, viewportCount = 1): n
 }
 
 export function getInboxScrollRoot(): HTMLElement | null {
-  const root = document.getElementById("bewly-inbox-root")
+  const root = document.getElementById("billnext-inbox-root")
   return root instanceof HTMLElement ? root : null
 }
 

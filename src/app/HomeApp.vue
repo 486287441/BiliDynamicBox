@@ -167,7 +167,7 @@ const persisted = readPersistedState()
 const decision = useDecisionStore()
 const transcriber = useTranscriberStore()
 const trash = useTrashStore()
-const requestedTab = new URL(window.location.href).searchParams.get("readflow")
+const requestedTab = new URL(window.location.href).searchParams.get("billnext")
 const libraryKind = ref<LibraryKind | null>(
   requestedTab === "favorites" || requestedTab === "history" || requestedTab === "watchlater" ? requestedTab : null,
 )
@@ -329,14 +329,14 @@ function navigateLibrary(kind: LibraryKind): void {
   const url = new URL(window.location.href)
   url.pathname = "/"
   url.search = ""
-  url.searchParams.set("readflow", kind)
-  window.history.pushState({ readflow: kind }, "", url.toString())
+  url.searchParams.set("billnext", kind)
+  window.history.pushState({ billnext: kind }, "", url.toString())
   scrollRoot?.scrollTo({ top: 0, behavior: "smooth" })
   if (!libraryStates[kind].loaded) void loadLibrary(true, kind)
 }
 
 function syncLibraryFromUrl(): void {
-  const value = new URL(window.location.href).searchParams.get("readflow")
+  const value = new URL(window.location.href).searchParams.get("billnext")
   const kind = value === "favorites" || value === "history" || value === "watchlater" ? value : null
   libraryKind.value = kind
   if (kind) {
@@ -370,9 +370,9 @@ async function selectTab(tab: HomeTab): Promise<void> {
   }
   activeTab.value = tab
   const tabUrl = new URL(window.location.href)
-  if (tab === "recommended") tabUrl.searchParams.delete("readflow")
-  else tabUrl.searchParams.set("readflow", tab)
-  window.history.pushState({ readflow: tab }, "", tabUrl.toString())
+  if (tab === "recommended") tabUrl.searchParams.delete("billnext")
+  else tabUrl.searchParams.set("billnext", tab)
+  window.history.pushState({ billnext: tab }, "", tabUrl.toString())
   query.value = ""
   if (tab === "following") return
   if (tab === "tracking") {
@@ -685,7 +685,7 @@ onMounted(() => {
   transcriberPollTimer = window.setInterval(() => {
     if (Object.values(transcriber.cards).some((item) => item.state === "transcribing")) void transcriber.refresh().catch(() => undefined)
   }, 5000)
-  scrollRoot = document.getElementById("bewly-inbox-root")
+  scrollRoot = document.getElementById("billnext-inbox-root")
   scrollRoot?.addEventListener("scroll", scheduleAutoFill, { passive: true })
   window.addEventListener("popstate", syncLibraryFromUrl)
   if (libraryKind.value) void loadLibrary(true)

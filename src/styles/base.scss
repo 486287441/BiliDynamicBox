@@ -4,31 +4,31 @@ body {
   padding: 0;
 }
 
-html.bewly-inbox-page,
-body.bewly-inbox-page {
+html.billnext-inbox-page,
+body.billnext-inbox-page {
   height: 100%;
   overflow: hidden !important;
 }
 
-#bewly-inbox-root {
+#billnext-inbox-root {
   position: fixed;
   inset: 0;
   z-index: 2147483000;
   overflow: auto;
   background: #f4f6fb;
   width: 100vw;
-  font-family: var(--rf-font-sans);
+  font-family: var(--billnext-font-sans);
   font-size: 14.8px;
 }
 
-#bewly-inbox-root * {
+#billnext-inbox-root * {
   font-family: inherit !important;
 }
 
-#bewly-inbox-root button,
-#bewly-inbox-root input,
-#bewly-inbox-root select,
-#bewly-inbox-root textarea {
+#billnext-inbox-root button,
+#billnext-inbox-root input,
+#billnext-inbox-root select,
+#billnext-inbox-root textarea {
   font: inherit;
 }
 
@@ -697,7 +697,7 @@ body.bewly-inbox-page {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-weight: var(--rf-font-weight-semibold);
+  font-weight: var(--billnext-font-weight-semibold);
   text-decoration: none;
 }
 
@@ -762,7 +762,7 @@ body.bewly-inbox-page {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-family: var(--rf-font-sans);
+  font-family: var(--billnext-font-sans);
 }
 
 .inbox-toast {

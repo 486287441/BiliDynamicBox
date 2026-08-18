@@ -14,7 +14,7 @@ const CHECKLIST_CACHE_VERSION = 3
 const CHECKLIST_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
 function cacheKey(kind: ChecklistKind): string {
-  return `bewly:checklist-data-cache-v${CHECKLIST_CACHE_VERSION}:${kind}`
+  return `billnext:checklist-data-cache-v${CHECKLIST_CACHE_VERSION}:${kind}`
 }
 
 function readCachedChecklist(kind: ChecklistKind): Promise<{ items: ChecklistItem[]; fetchedAt: number } | null> {

@@ -199,7 +199,7 @@ function onSharedTabSelect(tab: HomeTabValue): void {
   if (tab === "following") return
   window.location.href = tab === "recommended"
     ? "https://www.bilibili.com/"
-    : "https://www.bilibili.com/?readflow=" + tab
+    : "https://www.bilibili.com/?billnext=" + tab
 }
 
 function onSelectCard(card: VideoDynamicCard): void {
@@ -221,7 +221,7 @@ function getScrollRoot(): HTMLElement | null {
   if (scrollRoot instanceof HTMLElement) {
     return scrollRoot
   }
-  const root = document.getElementById("bewly-inbox-root")
+  const root = document.getElementById("billnext-inbox-root")
   if (root instanceof HTMLElement) {
     scrollRoot = root
     return root

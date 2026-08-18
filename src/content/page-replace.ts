@@ -1,11 +1,11 @@
-export const APP_CONTAINER_ID = "bewly-inbox-root"
-const APP_MOUNT_ATTR = "data-bewly-inbox-mounted"
+export const APP_CONTAINER_ID = "billnext-inbox-root"
+const APP_MOUNT_ATTR = "data-billnext-inbox-mounted"
 
 export function ensureAppContainer(): HTMLElement {
-  document.documentElement.classList.add("bewly-inbox-page")
-  document.body.classList.add("bewly-inbox-page")
-  document.documentElement.classList.toggle("readflow-home-page", window.location.hostname === "www.bilibili.com")
-  document.body.classList.toggle("readflow-home-page", window.location.hostname === "www.bilibili.com")
+  document.documentElement.classList.add("billnext-inbox-page")
+  document.body.classList.add("billnext-inbox-page")
+  document.documentElement.classList.toggle("billnext-home-page", window.location.hostname === "www.bilibili.com")
+  document.body.classList.toggle("billnext-home-page", window.location.hostname === "www.bilibili.com")
 
   const existing = document.getElementById(APP_CONTAINER_ID)
   if (existing instanceof HTMLElement) {
@@ -31,8 +31,8 @@ export function markContainerMounted(container: HTMLElement): void {
 }
 
 export function clearPageReplacement(): HTMLElement | null {
-  document.documentElement.classList.remove("bewly-inbox-page", "readflow-home-page")
-  document.body?.classList.remove("bewly-inbox-page", "readflow-home-page")
+  document.documentElement.classList.remove("billnext-inbox-page", "billnext-home-page")
+  document.body?.classList.remove("billnext-inbox-page", "billnext-home-page")
   const container = document.getElementById(APP_CONTAINER_ID)
   return container instanceof HTMLElement ? container : null
 }
