@@ -2,33 +2,25 @@
 node_modules/
 .pnpm-store/
 
-# Secrets & credentials (never commit)
+# Secrets and local credentials
 .env
 .env.*
-!.env.example
 *.pem
 *.key
+*.local
 secrets/
 credentials.json
 *cookies*.txt
-*.local
 
-# Packaged / distributable builds (build locally or in CI)
+# Packaged builds
 *.zip
 *.crx
 *.xpi
-dist.zip
-extension.zip
-BiliDynamicBox-extension.zip
 
-# OS & editors
-.DS_Store
-Thumbs.db
-.idea/
-*.swp
-*.swo
+# Browser-generated extension metadata
+_metadata/
 
-# Logs & tool caches
+# Tool caches and logs
 *.log
 .npm/
 .cache/
@@ -36,11 +28,12 @@ Thumbs.db
 dist-ssr/
 web-ext-profile/
 
-# Debug & temporary unpack dirs
-debug-*.png
-__zip_check/
-__zip_check*/
-kami-font-demo.html
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
 
-# Upstream style reference (clone locally if needed; not part of this extension)
-BewlyBewly-main/
+# Local upstream reference; not part of this repository
+BewlyBewly-本项目的参考项目/
