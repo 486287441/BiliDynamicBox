@@ -1,5 +1,5 @@
 <template>
-  <main ref="shellRef" class="inbox-shell home-shell" :class="{ 'detail-open': Boolean(selectedCard), 'sidebar-collapsed': sidebarCollapsed }">
+  <main ref="shellRef" class="inbox-shell home-shell" :class="{ 'detail-open': Boolean(selectedCard), 'sidebar-collapsed': sidebarCollapsed, 'checklist-active': !libraryKind && activeTab === 'checklist' }">
     <AppNav
       :active="navActive"
       :trash-count="trash.count"
@@ -11,14 +11,18 @@
       @navigate-tab="selectTab"
     />
     <WorkspaceToolbar
+      v-if="libraryKind || activeTab !== 'checklist'"
       :category="categoryFilter"
       :scope="activeTab === 'following' ? 'dynamics' : 'home'"
+      :search-only="!libraryKind && activeTab === 'tracking'"
       :min-duration-minutes="activeTab === 'following' ? dynamicMinDurationMinutes : homeMinDurationMinutes"
       :publish-after-date="activeTab === 'following' ? dynamicPublishAfterDate : homePublishAfterDate"
+      :refreshing="toolbarRefreshing"
       @update:category="setCategoryFilter"
       @update:min-duration-minutes="setScopedMinDuration"
       @update:publish-after-date="setScopedPublishAfter"
       @update:search-query="setScopedSearchQuery"
+      @refresh="refresh"
     />
 
     <LibraryView
@@ -70,11 +74,19 @@
       @clear-error="trackingError = ''"
     />
 
-    <section v-if="!libraryKind && activeTab !== 'following' && activeTab !== 'tracking' && error" class="inbox-error home-feed-error">
+    <ChecklistView
+      v-if="!libraryKind && activeTab === 'checklist'"
+      :watched-ids="watchedChecklistIds"
+      :availability-map="checklistAvailability"
+      @update:watched-ids="setWatchedChecklistIds"
+      @availability="setChecklistAvailability"
+    />
+
+    <section v-if="!libraryKind && activeTab !== 'following' && activeTab !== 'tracking' && activeTab !== 'checklist' && error" class="inbox-error home-feed-error">
       <span>{{ error }}</span><button type="button" @click="loadMore">重试</button>
     </section>
 
-    <TransitionGroup v-else-if="!libraryKind && activeTab !== 'following' && activeTab !== 'tracking'" class="home-video-grid" tag="section" name="home-card">
+    <TransitionGroup v-else-if="!libraryKind && activeTab !== 'following' && activeTab !== 'tracking' && activeTab !== 'checklist'" class="home-video-grid" tag="section" name="home-card">
       <VideoCard
         v-for="card in visibleCards"
         :key="card.dynamicId"
@@ -94,7 +106,7 @@
       />
     </TransitionGroup>
 
-    <div v-if="!libraryKind && activeTab !== 'following' && activeTab !== 'tracking'" class="home-feed-sentinel">
+    <div v-if="!libraryKind && activeTab !== 'following' && activeTab !== 'tracking' && activeTab !== 'checklist'" class="home-feed-sentinel">
       <span v-if="loading">正在获取内容…</span>
       <span v-else-if="hasMore">继续下滑，自动加载更多</span>
       <span v-else-if="cards.length">已经到底了</span>
@@ -122,6 +134,7 @@ import type { HomeTabValue } from "../components/HomeTabsBar.vue"
 import WorkspaceToolbar from "../components/WorkspaceToolbar.vue"
 import VideoDetailPanel from "../components/VideoDetailPanel.vue"
 import AnimeTrackingView, { type AnimeEditorPayload } from "../components/AnimeTrackingView.vue"
+import ChecklistView from "../components/ChecklistView.vue"
 import LibraryView from "../components/LibraryView.vue"
 import TrashModal from "../components/TrashModal.vue"
 import VideoCard from "../components/VideoCard.vue"
@@ -158,7 +171,7 @@ const requestedTab = new URL(window.location.href).searchParams.get("readflow")
 const libraryKind = ref<LibraryKind | null>(
   requestedTab === "favorites" || requestedTab === "history" || requestedTab === "watchlater" ? requestedTab : null,
 )
-const activeTab = ref<HomeTab>(requestedTab === "following" || requestedTab === "tracking" || requestedTab === "popular" || requestedTab === "ranking" ? requestedTab : "recommended")
+const activeTab = ref<HomeTab>(requestedTab === "following" || requestedTab === "tracking" || requestedTab === "checklist" || requestedTab === "popular" || requestedTab === "ranking" ? requestedTab : "recommended")
 const cards = ref<VideoDynamicCard[]>([])
 const query = ref("")
 const loading = ref(false)
@@ -173,6 +186,8 @@ const hideWantWatch = ref(persisted.hideWantWatch)
 const openVideoOnWantWatch = ref(persisted.openVideoOnWantWatch)
 const sidebarCollapsed = ref(persisted.sidebarCollapsed)
 const trackedAnime = ref<AnimeTrackingItem[]>(persisted.trackedAnime)
+const watchedChecklistIds = ref<string[]>(persisted.watchedChecklistIds)
+const checklistAvailability = ref(persisted.checklistAvailability)
 const trackingLoading = ref(false)
 const trackingError = ref("")
 const followingFeedRef = ref<{
@@ -231,7 +246,7 @@ const visibleCards = computed(() => {
   })
 })
 const wantWatchMap = computed(() => Object.fromEntries([...decision.wantWatchIds].map((id) => [id, true])))
-const navActive = computed(() => libraryKind.value ?? (activeTab.value === "following" ? "moments" : activeTab.value === "tracking" ? "tracking" : "home"))
+const navActive = computed(() => libraryKind.value ?? (activeTab.value === "following" ? "moments" : activeTab.value === "tracking" ? "tracking" : activeTab.value === "checklist" ? "checklist" : "home"))
 const activeLibraryState = computed(() => libraryKind.value ? libraryStates[libraryKind.value] : null)
 const libraryCards = computed(() => activeLibraryState.value?.cards ?? [])
 const libraryLoading = computed(() => activeLibraryState.value?.loading ?? false)
@@ -241,6 +256,11 @@ const libraryTranscriberStateMap = computed(() => Object.fromEntries(
   libraryCards.value.map((card) => [card.dynamicId, transcriber.getForCard(card)]),
 ))
 const libraryPendingMap = computed(() => ({ ...decision.pendingMap, ...libraryActionPending }))
+const toolbarRefreshing = computed(() => {
+  if (libraryKind.value) return libraryLoading.value
+  if (activeTab.value === "tracking") return trackingLoading.value
+  return loading.value
+})
 
 async function loadLibrary(reset: boolean, requestedKind: LibraryKind | null = libraryKind.value): Promise<void> {
   const kind = requestedKind
@@ -319,7 +339,17 @@ function syncLibraryFromUrl(): void {
   const value = new URL(window.location.href).searchParams.get("readflow")
   const kind = value === "favorites" || value === "history" || value === "watchlater" ? value : null
   libraryKind.value = kind
-  if (kind && !libraryStates[kind].loaded) void loadLibrary(true, kind)
+  if (kind) {
+    if (!libraryStates[kind].loaded) void loadLibrary(true, kind)
+    return
+  }
+  const nextTab: HomeTab = value === "following" || value === "tracking" || value === "checklist" || value === "popular" || value === "ranking" ? value : "recommended"
+  if (activeTab.value === nextTab) return
+  activeTab.value = nextTab
+  selectedCard.value = null
+  query.value = ""
+  if (nextTab === "tracking") void refreshTrackedAnimeList()
+  else if (nextTab !== "following" && nextTab !== "checklist" && !cards.value.length) void refresh()
 }
 
 function prefetchLibraries(): void {
@@ -329,28 +359,27 @@ function prefetchLibraries(): void {
 }
 
 async function selectTab(tab: HomeTab): Promise<void> {
-  if (libraryKind.value) {
+  const leavingLibrary = Boolean(libraryKind.value)
+  if (leavingLibrary) {
     libraryKind.value = null
-    const nextUrl = new URL(window.location.href)
-    nextUrl.searchParams.delete("readflow")
-    window.history.replaceState({}, "", nextUrl.toString())
   }
   selectedCard.value = null
-  if (tab === "following") {
-    activeTab.value = tab
-    query.value = ""
-    return
-  }
-  if (activeTab.value === tab) {
+  if (!leavingLibrary && activeTab.value === tab) {
     void refresh()
     return
   }
   activeTab.value = tab
+  const tabUrl = new URL(window.location.href)
+  if (tab === "recommended") tabUrl.searchParams.delete("readflow")
+  else tabUrl.searchParams.set("readflow", tab)
+  window.history.pushState({ readflow: tab }, "", tabUrl.toString())
   query.value = ""
+  if (tab === "following") return
   if (tab === "tracking") {
     void refreshTrackedAnimeList()
     return
   }
+  if (tab === "checklist") return
   void refresh()
 }
 
@@ -386,7 +415,7 @@ function isNearFeedEnd(): boolean {
 }
 
 async function fillScrollBuffer(): Promise<void> {
-  if (autoFilling || activeTab.value === "following" || activeTab.value === "tracking") return
+  if (autoFilling || activeTab.value === "following" || activeTab.value === "tracking" || activeTab.value === "checklist") return
   autoFilling = true
   try {
     let loadedPages = 0
@@ -421,6 +450,7 @@ async function refresh(): Promise<void> {
     await refreshTrackedAnimeList()
     return
   }
+  if (activeTab.value === "checklist") return
   cards.value = []
   pageIndex.value = 1
   hasMore.value = true
@@ -460,8 +490,16 @@ async function editTrackedAnimeItem(payload: AnimeEditorPayload & { item: AnimeT
   trackingError.value = ""
   try {
     const updated = await editTrackedAnime(payload.item, payload.title, payload.sourceUrl)
-    trackedAnime.value = trackedAnime.value.filter((item) => item.id !== payload.item.id && item.id !== updated.id)
-    trackedAnime.value.push(updated)
+    const nextItems = [...trackedAnime.value]
+    let originalIndex = nextItems.findIndex((item) => item.id === payload.item.id)
+    const duplicateIndex = nextItems.findIndex((item, index) => index !== originalIndex && item.id === updated.id)
+    if (duplicateIndex >= 0) {
+      nextItems.splice(duplicateIndex, 1)
+      if (duplicateIndex < originalIndex) originalIndex -= 1
+    }
+    if (originalIndex >= 0) nextItems.splice(originalIndex, 1, updated)
+    else nextItems.push(updated)
+    trackedAnime.value = nextItems
     persistTrackedAnime()
     showToast("追番信息已更新")
   } catch (caught) {
@@ -504,6 +542,15 @@ function removeTrackedAnime(item: AnimeTrackingItem): void {
 function openSettings(): void {
   followingFeedRef.value?.openSettings()
 }
+
+function setWatchedChecklistIds(value: string[]): void {
+  watchedChecklistIds.value = value
+  writePersistedState({ watchedChecklistIds: value })
+}
+function setChecklistAvailability(value: import("../domain/checklist").ChecklistAvailability): void {
+  checklistAvailability.value = { ...checklistAvailability.value, [value.key]: value }
+  writePersistedState({ checklistAvailability: checklistAvailability.value })
+}
 function transitionCardLayout(update: () => void): void {
   const shell = shellRef.value
   const before = shell ? captureCardRects(shell) : new Map<HTMLElement, DOMRect>()
@@ -528,10 +575,10 @@ function setCategoryFilter(value: ContentCategoryFilter): void {
     categoryFilter.value = value
     followingFeedRef.value?.setCategoryFilter(value)
   } else {
-    transitionCardLayout(() => { categoryFilter.value = value })
+    categoryFilter.value = value
   }
   void nextTick(() => {
-    if (activeTab.value !== "following" && activeTab.value !== "tracking") scheduleAutoFill()
+    if (activeTab.value !== "following" && activeTab.value !== "tracking" && activeTab.value !== "checklist") scheduleAutoFill()
   })
 }
 function setScopedMinDuration(value: string): void {
@@ -559,7 +606,7 @@ function setScopedSearchQuery(value: string): void {
 }
 function setSidebarCollapsed(value: boolean): void {
   if (sidebarCollapsed.value === value) return
-  transitionCardLayout(() => { sidebarCollapsed.value = value })
+  sidebarCollapsed.value = value
   writePersistedState({ sidebarCollapsed: value })
 }
 function onSettingsChange(settings: {
@@ -574,7 +621,7 @@ function onSettingsChange(settings: {
   hideWantWatch.value = settings.hideWantWatch
   openVideoOnWantWatch.value = settings.openVideoOnWantWatch
   if (sidebarCollapsed.value !== settings.sidebarCollapsed) setSidebarCollapsed(settings.sidebarCollapsed)
-  if (activeTab.value !== "following" && activeTab.value !== "tracking" && visibleCards.value.length < 12 && hasMore.value) {
+  if (activeTab.value !== "following" && activeTab.value !== "tracking" && activeTab.value !== "checklist" && visibleCards.value.length < 12 && hasMore.value) {
     void loadMore()
   }
 }
@@ -643,7 +690,7 @@ onMounted(() => {
   window.addEventListener("popstate", syncLibraryFromUrl)
   if (libraryKind.value) void loadLibrary(true)
   else if (activeTab.value === "tracking") void refreshTrackedAnimeList()
-  else void loadMore()
+  else if (activeTab.value !== "checklist") void loadMore()
   window.setTimeout(prefetchLibraries, 500)
 })
 onUnmounted(() => {

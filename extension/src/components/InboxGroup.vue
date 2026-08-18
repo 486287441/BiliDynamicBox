@@ -1,6 +1,6 @@
 <template>
   <article class="group-block" ref="groupRef">
-    <h2 ref="titleRef"><span>{{ group.label }}</span><small>{{ displayCount }}</small></h2>
+    <h2><span>{{ group.label }}</span><small>{{ displayCount }}</small></h2>
     <TransitionGroup
       class="group-list"
       tag="div"
@@ -29,8 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
-import gsap from "gsap"
+import { computed, nextTick, ref, watch } from "vue"
 
 import type { DateGroup, VideoDynamicCard } from "../domain/types"
 import {
@@ -69,9 +68,7 @@ const emit = defineEmits<{
 }>()
 
 const groupRef = ref<HTMLElement | null>(null)
-const titleRef = ref<HTMLElement | null>(null)
 const knownCardIds = ref<string[]>([])
-let motionCtx: gsap.Context | null = null
 
 const displayCount = computed(() => {
   const finalCount = props.finalCountMap[props.group.key]
@@ -135,9 +132,9 @@ function animateFillInCards(items: VideoDynamicCard[]): void {
         continue
       }
       fadeSlideIn(cardEl, {
-        y: 10,
-        duration: 0.26,
-        delay: Math.min(index, 3) * 0.04,
+        y: 6,
+        duration: 0.2,
+        delay: Math.min(index, 3) * 0.035,
         onComplete: () => finishOne(item.dynamicId),
       })
     }
@@ -158,21 +155,5 @@ watch(
   { flush: "post" },
 )
 
-onMounted(async () => {
-  knownCardIds.value = props.group.items.map((item) => item.dynamicId)
-  await nextTick()
-  if (!groupRef.value) {
-    return
-  }
-  motionCtx = gsap.context(() => {
-    if (titleRef.value) {
-      fadeSlideIn(titleRef.value, { y: 6, duration: 0.22 })
-    }
-  }, groupRef.value)
-})
-
-onUnmounted(() => {
-  motionCtx?.revert()
-  motionCtx = null
-})
+knownCardIds.value = props.group.items.map((item) => item.dynamicId)
 </script>

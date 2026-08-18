@@ -21,12 +21,12 @@ export function showToast(message: string, type: ToastType = "success"): void {
   toast.textContent = message
   host.appendChild(toast)
 
-  fadeSlideIn(toast, { y: -10, duration: 0.26 })
+  fadeSlideIn(toast, { y: -8, duration: 0.2 })
 
   const remove = () => {
     fadeSlideOut(toast, {
       y: -6,
-      duration: 0.18,
+      duration: 0.14,
       onComplete: () => {
         if (host.contains(toast)) {
           host.removeChild(toast)

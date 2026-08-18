@@ -1,5 +1,7 @@
 import type { VideoDynamicCard } from "../domain/types"
 
+declare const chrome: any
+
 const FALLBACK_VIDEO_URL = "https://www.bilibili.com/"
 
 export function getVideoUrl(card: VideoDynamicCard): string {
@@ -21,12 +23,13 @@ export function openVideoInNewTab(card: VideoDynamicCard): void {
     return
   }
 
-  const link = document.createElement("a")
-  link.href = url
-  link.target = "_blank"
-  link.rel = "noopener noreferrer"
-  link.style.display = "none"
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
+  if (typeof chrome === "undefined" || !chrome.runtime?.sendMessage) {
+    return
+  }
+
+  chrome.runtime.sendMessage({ type: "tabs:open-background", url }, () => {
+    // Accessing lastError prevents Chrome from logging an unchecked rejection
+    // when the extension is reloaded while this page is still open.
+    void chrome.runtime.lastError
+  })
 }

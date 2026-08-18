@@ -1,9 +1,11 @@
 <template>
-  <main ref="shellRef" class="inbox-shell home-shell" :class="{ 'detail-open': selectedCard, 'sidebar-collapsed': sidebarCollapsed }">
-    <AppNav active="moments" :trash-count="0" :collapsed="sidebarCollapsed" @update:collapsed="updateSidebar" @navigate-tab="() => undefined" @navigate-library="() => undefined" @open-tools="showPreviewToast('筛选设置已打开')" />
-    <WorkspaceToolbar :category="category" scope="dynamics" min-duration-minutes="" publish-after-date="" @update:category="updateCategory" />
+  <main ref="shellRef" class="inbox-shell home-shell" :class="{ 'detail-open': previewTab !== 'checklist' && selectedCard, 'sidebar-collapsed': sidebarCollapsed }">
+    <AppNav :active="previewTab === 'checklist' ? 'checklist' : 'moments'" :trash-count="0" :collapsed="sidebarCollapsed" @update:collapsed="updateSidebar" @navigate-tab="previewTab = $event" @navigate-library="() => undefined" @open-tools="showPreviewToast('筛选设置已打开')" />
+    <WorkspaceToolbar v-if="previewTab !== 'checklist'" :category="category" scope="dynamics" min-duration-minutes="" publish-after-date="" @update:category="updateCategory" />
 
-    <section class="inbox-content">
+    <ChecklistView v-if="previewTab === 'checklist'" :watched-ids="watchedChecklistIds" :availability-map="{}" @update:watched-ids="watchedChecklistIds = $event" />
+
+    <section v-else class="inbox-content">
       <article class="group-block">
         <h2><span>今天</span><small>40</small></h2>
         <div class="group-list">
@@ -28,6 +30,7 @@
     </section>
 
     <VideoDetailPanel
+      v-if="previewTab !== 'checklist'"
       :card="selectedCard"
       :transcriber-state="selectedCard?.dynamicId === readingId ? previewTranscriberState : undefined"
       :pending="false"
@@ -43,6 +46,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue"
 import AppNav from "../components/AppNav.vue"
+import ChecklistView from "../components/ChecklistView.vue"
 import VideoCard from "../components/VideoCard.vue"
 import VideoDetailPanel from "../components/VideoDetailPanel.vue"
 import WorkspaceToolbar from "../components/WorkspaceToolbar.vue"
@@ -103,6 +107,8 @@ const cards = ref<VideoDynamicCard[]>(titles.map((title, index) => ({
 })))
 
 const category = ref<ContentCategoryFilter>("all")
+const previewTab = ref(new URL(window.location.href).searchParams.get("screen") === "checklist" ? "checklist" : "following")
+const watchedChecklistIds = ref<string[]>(["imdb:tt0111161", "imdb:tt0068646"])
 const sidebarCollapsed = ref(false)
 const shellRef = ref<HTMLElement | null>(null)
 const selectedCard = ref<VideoDynamicCard | null>(cards.value[1])
@@ -127,8 +133,8 @@ function transitionCardLayout(update: () => void): void {
 }
 function openCard(card: VideoDynamicCard): void { transitionCardLayout(() => { selectedCard.value = card }) }
 function closeCard(): void { transitionCardLayout(() => { selectedCard.value = null }) }
-function updateCategory(value: ContentCategoryFilter): void { transitionCardLayout(() => { category.value = value }) }
-function updateSidebar(value: boolean): void { transitionCardLayout(() => { sidebarCollapsed.value = value }) }
+function updateCategory(value: ContentCategoryFilter): void { category.value = value }
+function updateSidebar(value: boolean): void { sidebarCollapsed.value = value }
 function showPreviewToast(message: string): void { showToast(message) }
 function markWant(card: VideoDynamicCard): void {
   wantWatchMap.value = { ...wantWatchMap.value, [card.dynamicId]: true }

@@ -9,17 +9,30 @@
     "128": "icons/icon128.png"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
     "https://api.bilibili.com/*",
     "https://api.deepseek.com/*",
     "https://api.bgm.tv/*",
+    "https://api.graphql.imdb.com/*",
+    "https://v3.sg.media-imdb.com/*",
+    "https://m.douban.com/*",
     "http://127.0.0.1:8765/*"
   ],
   "background": {
     "service_worker": "dist/background/index.js",
     "type": "module"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "imdb_api_headers",
+        "enabled": true,
+        "path": "rules/imdb-api-headers.json"
+      }
+    ]
   },
   "web_accessible_resources": [
     {

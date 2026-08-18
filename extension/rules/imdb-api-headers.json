@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://www.imdb.com/"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||api.graphql.imdb.com/",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://movie.douban.com/top250"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||m.douban.com/rexxar/api/v2/subject_collection/movie_top250/items",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://m.douban.com/"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||m.douban.com/rexxar/api/v2/movie/",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://m.douban.com/"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||m.douban.com/movie/subject/",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  }
+]

@@ -154,6 +154,9 @@ export interface LoggedInUser {
   mid: string
   name: string
   face: string
+  level: number
+  vipActive: boolean
+  vipLabel: string
 }
 
 export async function fetchLoggedInUser(): Promise<LoggedInUser> {
@@ -172,6 +175,15 @@ export async function fetchLoggedInUser(): Promise<LoggedInUser> {
       mid?: number
       uname?: string
       face?: string
+      level_info?: { current_level?: number }
+      vipStatus?: number
+      vipType?: number
+      vip?: {
+        status?: number
+        type?: number
+        label?: { text?: string }
+      }
+      vip_label?: { text?: string }
     }
   }
 
@@ -186,6 +198,9 @@ export async function fetchLoggedInUser(): Promise<LoggedInUser> {
     mid: String(payload.data.mid),
     name: payload.data.uname ?? "",
     face: payload.data.face ?? "",
+    level: Math.max(0, Math.min(6, Math.floor(Number(payload.data.level_info?.current_level ?? 0)))),
+    vipActive: (payload.data.vip?.status ?? payload.data.vipStatus) === 1,
+    vipLabel: payload.data.vip?.label?.text || payload.data.vip_label?.text || ((payload.data.vip?.type ?? payload.data.vipType) === 2 ? "年度大会员" : "大会员"),
   }
 }
 

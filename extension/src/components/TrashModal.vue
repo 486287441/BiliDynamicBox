@@ -78,7 +78,7 @@ async function animateOpen(): Promise<void> {
   if (listRef.value) {
     const rows = listRef.value.querySelectorAll(".trash-item")
     if (rows.length > 0) {
-      staggerIn(rows, { y: 6, stagger: 0.025, duration: 0.22, maxItems: 8 })
+      staggerIn(rows, { y: 6, stagger: 0.035, duration: 0.2, maxItems: 6 })
     }
   }
 }
@@ -95,9 +95,9 @@ function animateClose(): void {
     closing.value = false
     return
   }
-  scaleFadeOut(panel, { duration: 0.18 })
+  scaleFadeOut(panel, { duration: 0.14 })
   maskFadeOut(mask, {
-    duration: 0.18,
+    duration: 0.14,
     onComplete: () => {
       visible.value = false
       closing.value = false

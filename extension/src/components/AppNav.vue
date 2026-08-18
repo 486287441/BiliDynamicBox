@@ -28,6 +28,9 @@
     </nav>
 
     <nav class="billnext-secondary-nav" aria-label="个人内容">
+      <a href="https://www.bilibili.com/?readflow=native" title="切换为原版 B 站">
+        <Icon icon="mingcute:transfer-4-line" /><span>原版 B 站</span>
+      </a>
       <a href="https://www.bilibili.com/?readflow=watchlater" title="稍后再看" :class="{ active: active === 'watchlater' }" @click.prevent="$emit('navigate-library', 'watchlater')">
         <Icon :icon="active === 'watchlater' ? 'mingcute:bookmark-fill' : 'mingcute:bookmark-line'" /><span>稍后再看</span>
       </a>
@@ -44,7 +47,13 @@
 
     <a class="billnext-profile" :href="userMid ? 'https://space.bilibili.com/' + userMid : 'https://account.bilibili.com/'" title="个人空间">
       <span class="billnext-profile-avatar"><img v-if="userAvatar" :src="userAvatar" alt="用户头像" /><Icon v-else icon="mingcute:user-3-line" /></span>
-      <span><strong>{{ userName || '我的空间' }}</strong></span>
+      <span>
+        <strong>{{ userName || '我的空间' }}</strong>
+        <small v-if="userLoaded" class="billnext-profile-status">
+          <i>LV{{ userLevel }}</i>
+          <em :class="{ active: userVipActive }">{{ userVipActive ? userVipLabel : "未开通大会员" }}</em>
+        </small>
+      </span>
       <Icon icon="mingcute:right-small-line" />
     </a>
   </aside>
@@ -57,7 +66,7 @@ import { fetchLoggedInUser } from "../services/bilibili-api"
 import type { LibraryKind } from "../domain/types"
 import type { HomeTabValue } from "./HomeTabsBar.vue"
 
-type NavActive = "home" | "moments" | "tracking" | "favorites" | "history" | "watchlater"
+type NavActive = "home" | "moments" | "tracking" | "checklist" | "favorites" | "history" | "watchlater"
 const props = withDefaults(defineProps<{ active: NavActive; trashCount: number; collapsed?: boolean }>(), {
   collapsed: false,
 })
@@ -72,6 +81,10 @@ const emit = defineEmits<{
 const userAvatar = ref("")
 const userMid = ref("")
 const userName = ref("")
+const userLevel = ref(0)
+const userVipActive = ref(false)
+const userVipLabel = ref("大会员")
+const userLoaded = ref(false)
 const collapsed = computed(() => props.collapsed)
 
 function toggleCollapsed(): void {
@@ -81,6 +94,7 @@ const primaryItems = computed(() => [
   { label: "首页", icon: "mingcute:home-5-line", activeIcon: "mingcute:home-5-fill", href: "https://www.bilibili.com/", active: props.active === "home", tab: "recommended" as HomeTabValue },
   { label: "动态", icon: "tabler:windmill", activeIcon: "tabler:windmill-filled", href: "https://www.bilibili.com/?readflow=following", active: props.active === "moments", tab: "following" as HomeTabValue },
   { label: "追番", icon: "mingcute:tv-2-line", activeIcon: "mingcute:tv-2-fill", href: "https://www.bilibili.com/?readflow=tracking", active: props.active === "tracking", tab: "tracking" as HomeTabValue },
+  { label: "清单", icon: "mingcute:list-check-3-line", activeIcon: "mingcute:list-check-3-fill", href: "https://www.bilibili.com/?readflow=checklist", active: props.active === "checklist", tab: "checklist" as HomeTabValue },
 ])
 
 function onPrimaryClick(event: MouseEvent, tab: HomeTabValue): void {
@@ -94,6 +108,10 @@ onMounted(() => {
     userAvatar.value = user.face
     userMid.value = user.mid
     userName.value = user.name
+    userLevel.value = user.level
+    userVipActive.value = user.vipActive
+    userVipLabel.value = user.vipLabel
+    userLoaded.value = true
   }).catch(() => undefined)
 })
 

@@ -5,8 +5,6 @@
       ref="toolbarRef"
       :view-mode="viewMode"
       :trash-count="trash.count"
-      :search-query="searchQuery"
-      :search-scope="searchScope"
       :hide-want-watch="hideWantWatch"
       :open-video-on-want-watch="openVideoOnWantWatch"
       :sidebar-collapsed="sidebarCollapsed"
@@ -19,8 +17,6 @@
       @toggle-open-video-on-want-watch="onToggleOpenVideoOnWantWatch"
       @toggle-sidebar-collapsed="onToggleSidebarCollapsed"
       @update:view-mode="onViewModeUpdate"
-      @update:search-query="searchQuery = $event"
-      @update:search-scope="searchScope = $event"
       @update:category-filter="onCategoryFilterUpdate"
       @save-ai-key="onSaveAiKey"
     />
@@ -93,7 +89,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
 
-import TopToolbar, { type SearchScope } from "../components/TopToolbar.vue"
+import TopToolbar from "../components/TopToolbar.vue"
 import AppNav from "../components/AppNav.vue"
 import type { HomeTabValue } from "../components/HomeTabsBar.vue"
 import UpFilterView from "../components/UpFilterView.vue"
@@ -114,6 +110,8 @@ import { useTranscriberStore } from "../store/transcriber"
 import { readPersistedState, writePersistedState } from "../services/storage"
 import { showToast } from "../services/toast"
 import { animateGridReflow, captureCardRects, type CardLeaveVariant } from "../utils/motion"
+
+type SearchScope = "dynamics" | "bilibili"
 
 const persistedState = readPersistedState()
 const props = withDefaults(defineProps<{ embedded?: boolean; feedVisible?: boolean; selectedCardId?: string }>(), {
@@ -412,7 +410,7 @@ function onToggleOpenVideoOnWantWatch(): void {
 
 function onSidebarCollapsedUpdate(value: boolean): void {
   if (sidebarCollapsed.value === value) return
-  transitionCardLayout(() => { sidebarCollapsed.value = value })
+  sidebarCollapsed.value = value
   writePersistedState({ sidebarCollapsed: value })
   emitSettingsChange()
 }
@@ -467,7 +465,7 @@ function onHelpRead(card: VideoDynamicCard): void {
 
 function onCategoryFilterUpdate(value: ContentCategoryFilter): void {
   if (categoryFilter.value === value) return
-  transitionCardLayout(() => { categoryFilter.value = value })
+  categoryFilter.value = value
   classification.ensureClassified(inbox.allCards)
   void inbox.fillAfterHide(getScrollRoot(), passesDisplayFilters)
 }

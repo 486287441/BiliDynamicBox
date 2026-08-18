@@ -3,7 +3,9 @@ export function isTargetMomentsPage(url: URL = new URL(window.location.href)): b
 }
 
 export function isTargetHomePage(url: URL = new URL(window.location.href)): boolean {
-  return url.hostname === "www.bilibili.com" && (url.pathname === "/" || url.pathname === "")
+  return url.hostname === "www.bilibili.com"
+    && (url.pathname === "/" || url.pathname === "")
+    && url.searchParams.get("readflow") !== "native"
 }
 
 export function isTargetPage(url: URL = new URL(window.location.href)): boolean {

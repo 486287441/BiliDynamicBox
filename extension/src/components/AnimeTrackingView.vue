@@ -14,14 +14,15 @@
         <div><strong>添加正在看的番</strong><small>名称用于查询更新；链接用于“去观看”</small></div>
         <button type="button" aria-label="关闭" @click="closeEditor">×</button>
       </div>
-      <label><span>番剧名称</span><input ref="nameInputRef" v-model="draftTitle" type="text" placeholder="例如：葬送的芙莉莲" :disabled="loading" /></label>
+      <label><span>番剧名称</span><input ref="nameInputRef" v-model="draftTitle" type="text" placeholder="例如：尼古喵喵" :disabled="loading" /></label>
       <label>
         <span class="anime-link-label"><span>观看合集链接</span><button type="button" :disabled="loading || matching || !draftTitle.trim()" @click="autoMatchWatchLink">{{ matching ? "正在匹配…" : "自动匹配合集" }}</button></span>
         <input v-model="draftUrl" type="url" placeholder="B 站合集、播放列表或其他观看链接" :disabled="loading" />
       </label>
       <div v-if="matchResult" class="anime-match-result">
         <span>已选最优</span><a :href="matchResult.url" target="_blank" rel="noopener noreferrer">{{ matchResult.title }}</a>
-        <small>{{ matchResult.author ? `${matchResult.author} · ` : "" }}{{ formatCount(matchResult.playCount) }}播放 · {{ formatCount(matchResult.danmakuCount) }}弹幕<span v-if="matchResult.durationSeconds"> · {{ formatDuration(matchResult.durationSeconds) }}</span></small>
+        <small v-if="matchResult.sourceType === 'official'">B 站官方番剧 · 优先使用正版播放页</small>
+        <small v-else>{{ matchResult.author ? `${matchResult.author} · ` : "" }}{{ formatCount(matchResult.playCount) }}播放 · {{ formatCount(matchResult.danmakuCount) }}弹幕<span v-if="matchResult.durationSeconds"> · {{ formatDuration(matchResult.durationSeconds) }}</span></small>
       </div>
       <p v-if="matchError" class="anime-match-error">{{ matchError }}</p>
       <p class="anime-editor-hint">会自动从 Bangumi 匹配封面、总集数、放送状态和最新集数。</p>
@@ -54,7 +55,8 @@
           </label>
           <div v-if="matchResult" class="anime-match-result">
             <span>已选最优</span><a :href="matchResult.url" target="_blank" rel="noopener noreferrer">{{ matchResult.title }}</a>
-            <small>{{ matchResult.author ? `${matchResult.author} · ` : "" }}{{ formatCount(matchResult.playCount) }}播放 · {{ formatCount(matchResult.danmakuCount) }}弹幕<span v-if="matchResult.durationSeconds"> · {{ formatDuration(matchResult.durationSeconds) }}</span></small>
+            <small v-if="matchResult.sourceType === 'official'">B 站官方番剧 · 优先使用正版播放页</small>
+            <small v-else>{{ matchResult.author ? `${matchResult.author} · ` : "" }}{{ formatCount(matchResult.playCount) }}播放 · {{ formatCount(matchResult.danmakuCount) }}弹幕<span v-if="matchResult.durationSeconds"> · {{ formatDuration(matchResult.durationSeconds) }}</span></small>
           </div>
           <p v-if="matchError" class="anime-match-error">{{ matchError }}</p>
           <p v-if="error" class="anime-add-error">{{ error }}</p>
@@ -77,7 +79,7 @@
             <strong>{{ progressLabel(item) }}</strong>
             <span>{{ item.totalEpisodes ? `共 ${item.totalEpisodes} 集` : "总集数待定" }}</span>
           </div>
-          <div class="anime-progress-track"><i :style="{ width: progressPercent(item) + '%' }"></i></div>
+          <div class="anime-progress-track"><i :style="{ transform: `scaleX(${progressPercent(item) / 100})` }"></i></div>
 
           <div class="anime-latest-info">
             <span :class="{ 'is-update': hasUpdate(item) }">{{ hasUpdate(item) ? "有新更新" : "当前进度" }}</span>

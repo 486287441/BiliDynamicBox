@@ -9,13 +9,14 @@
 </template>
 
 <script setup lang="ts">
-export type HomeTabValue = "recommended" | "following" | "tracking" | "popular" | "ranking"
+export type HomeTabValue = "recommended" | "following" | "tracking" | "checklist" | "popular" | "ranking"
 const props = defineProps<{ active: HomeTabValue }>()
 const emit = defineEmits<{ (event: "select", tab: HomeTabValue): void }>()
 const tabs: Array<{ value: HomeTabValue; label: string }> = [
   { value: "recommended", label: "个性推荐" },
   { value: "following", label: "正在关注" },
   { value: "tracking", label: "正在追番" },
+  { value: "checklist", label: "经典清单" },
   { value: "popular", label: "热门视频" },
   { value: "ranking", label: "排行" },
 ]

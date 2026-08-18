@@ -85,12 +85,12 @@
   --radius-window: 1.375rem;
   --radius-pill: 999px;
 
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --dur-micro: 100ms;
   --dur-short: 180ms;
-  --dur-medium: 280ms;
+  --dur-medium: 240ms;
   --dur-long: 420ms;
 
   --shadow-card: 0 1px 0 oklch(99% 0.006 232 / 72%) inset, 0 14px 38px -24px color-mix(in oklch, var(--color-ink) 32%, transparent);

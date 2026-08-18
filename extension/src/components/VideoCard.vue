@@ -22,27 +22,17 @@
     </div>
     <div v-if="actionMode === 'default'" class="video-card-footer-actions">
       <button class="footer-action footer-action-primary" type="button" :disabled="isPending" @click.stop="onWantWatchClick">{{ isPending ? "处理中…" : isWantWatched ? "已想看" : "想看" }}</button>
-      <button class="footer-action footer-action-help-read" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ transcriberState?.state === 'transcribing' ? '正在帮读' : '帮我读' }}</button>
+      <button class="footer-action footer-action-help-read" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ helpReadLabel }}</button>
       <button class="footer-action" type="button" :disabled="isPending" @click.stop="$emit('dislike')">不想看</button>
     </div>
     <div v-else-if="actionMode === 'favorites'" class="video-card-footer-actions library-card-actions">
-      <button class="footer-action footer-action-help-read" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ transcriberState?.state === 'transcribing' ? '正在帮读' : '帮我读' }}</button>
+      <button class="footer-action footer-action-help-read" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ helpReadLabel }}</button>
       <button class="footer-action" type="button" :disabled="isPending" @click.stop="$emit('remove-favorite')">{{ isPending ? "处理中…" : "取消收藏" }}</button>
     </div>
     <div v-else class="video-card-footer-actions library-card-actions">
       <button class="footer-action" type="button" :disabled="isPending" @click.stop="$emit('add-favorite')">加入收藏</button>
-      <button class="footer-action footer-action-help-read" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ transcriberState?.state === 'transcribing' ? '正在帮读' : '帮我读' }}</button>
+      <button class="footer-action footer-action-help-read" type="button" :disabled="isPending || Boolean(transcriberState)" @click="helpMeRead">{{ helpReadLabel }}</button>
       <button class="footer-action" type="button" :disabled="isPending" @click.stop="$emit('remove-watch-later')">{{ isPending ? "处理中…" : "移出稍后再看" }}</button>
-    </div>
-    <div v-if="transcriberState?.state === 'completed'" class="video-transcriber-result">
-      <a class="video-transcriber-status is-completed" :href="transcriberOutputUrl" target="_blank" rel="noopener noreferrer">查看帮读结果</a>
-      <div v-if="transcriberState.state === 'completed' && transcriberState.recommendation" class="video-recommendation">
-        <div class="video-recommendation-heading">
-          <strong class="recommendation-grade">{{ transcriberState.recommendation.grade }} · {{ transcriberState.recommendation.score }}分</strong>
-          <span>{{ transcriberState.recommendation.advice || transcriberState.recommendation.verdict }}</span>
-        </div>
-        <p>{{ recommendationReason }}</p>
-      </div>
     </div>
   </article>
 </template>
@@ -112,10 +102,10 @@ async function helpMeRead(event: MouseEvent): Promise<void> {
 const coverUrl = computed(() => props.card.cover ? props.card.cover + "@672w_378h_1c" : "")
 const avatarUrl = computed(() => props.card.upAvatar ? props.card.upAvatar + "@48w_48h_1c_1s" : "")
 const videoUrl = computed(() => getVideoUrl(props.card))
-const transcriberOutputUrl = computed(() => props.transcriberState?.outputUrl || "http://127.0.0.1:8765/")
-const recommendationReason = computed(() => {
-  const recommendation = props.transcriberState?.recommendation
-  return recommendation?.recommendation_reason || recommendation?.reason || recommendation?.scoring_reason || ""
+const helpReadLabel = computed(() => {
+  if (props.transcriberState?.state === "completed") return "帮读已完成"
+  if (props.transcriberState?.state === "transcribing") return "正在帮读"
+  return "帮我读"
 })
 const upSpaceUrl = computed(() => props.card.upMid ? "https://space.bilibili.com/" + props.card.upMid : "https://space.bilibili.com/")
 const publishLabel = computed(() => {

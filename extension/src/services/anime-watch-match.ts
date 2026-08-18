@@ -16,6 +16,26 @@ interface BilibiliSearchVideo {
   author?: string
 }
 
+interface BilibiliSearchBangumiEpisode {
+  id?: number
+  url?: string
+}
+
+interface BilibiliSearchBangumi {
+  type?: string
+  media_type?: number
+  season_type?: number
+  season_id?: number
+  pgc_season_id?: number
+  title?: string
+  org_title?: string
+  url?: string
+  goto_url?: string
+  button_text?: string
+  ep_size?: number
+  eps?: BilibiliSearchBangumiEpisode[]
+}
+
 interface ScoredCandidate {
   item: BilibiliSearchVideo
   title: string
@@ -27,6 +47,7 @@ interface ScoredCandidate {
 }
 
 export interface AnimeWatchMatch {
+  sourceType: "official" | "video"
   title: string
   url: string
   author: string
@@ -34,6 +55,22 @@ export interface AnimeWatchMatch {
   danmakuCount: number
   durationSeconds: number
   score: number
+}
+
+function bilibiliBangumiUrl(value: unknown): string {
+  const text = plainText(value)
+  if (!text) return ""
+  try {
+    const url = new URL(text, "https://www.bilibili.com")
+    if (!/(^|\.)bilibili\.com$/i.test(url.hostname)) return ""
+    if (!/^\/bangumi\/play\/(?:ss|ep)\d+\/?$/i.test(url.pathname)) return ""
+    url.protocol = "https:"
+    url.search = ""
+    url.hash = ""
+    return url.toString().replace(/\/$/, "")
+  } catch {
+    return ""
+  }
 }
 
 function plainText(value: unknown): string {
@@ -154,10 +191,83 @@ async function searchPage(keyword: string, order: typeof SEARCH_ORDERS[number], 
   return Array.isArray(payload.data?.result) ? payload.data.result : []
 }
 
+async function searchOfficialBangumi(keyword: string, retry = true): Promise<BilibiliSearchBangumi[]> {
+  const query = await signWbiParams({
+    keyword,
+    search_type: "media_bangumi",
+    page: 1,
+  })
+  const response = await pageFetch(`${SEARCH_ENDPOINT}?${query.toString()}`, { headers: { Referer: "https://search.bilibili.com/" } })
+  const payload = await response.json().catch(() => null) as {
+    code?: number
+    message?: string
+    data?: { result?: BilibiliSearchBangumi[] }
+  } | null
+  if (retry && (payload?.code === -352 || payload?.code === -403)) {
+    invalidateWbiKeys()
+    return searchOfficialBangumi(keyword, false)
+  }
+  if (!response.ok || payload?.code !== 0) throw new Error(payload?.message || `B 站番剧搜索失败（${response.status}）`)
+  return Array.isArray(payload.data?.result) ? payload.data.result : []
+}
+
+function findOfficialBangumi(keyword: string, items: BilibiliSearchBangumi[]): AnimeWatchMatch | null {
+  const normalizedKeyword = normalizeTitle(keyword)
+  const candidates = items.flatMap((item) => {
+    if (item.type && item.type !== "media_bangumi") return []
+    if ((item.season_type ?? item.media_type ?? 1) !== 1) return []
+
+    const title = plainText(item.title)
+    const originalTitle = plainText(item.org_title)
+    const titleSimilarity = bigramSimilarity(normalizedKeyword, normalizeTitle(title))
+    const originalTitleSimilarity = bigramSimilarity(normalizedKeyword, normalizeTitle(originalTitle))
+    const relevance = Math.max(titleSimilarity, originalTitleSimilarity)
+    if (!title || relevance < 0.5) return []
+
+    const episodeUrl = item.eps?.map((episode) => bilibiliBangumiUrl(episode.url)).find(Boolean) ?? ""
+    const seasonId = item.season_id ?? item.pgc_season_id
+    const seasonUrl = bilibiliBangumiUrl(item.url)
+      || bilibiliBangumiUrl(item.goto_url)
+      || (Number.isFinite(seasonId) && Number(seasonId) > 0
+        ? `https://www.bilibili.com/bangumi/play/ss${seasonId}`
+        : "")
+    const hasPlayableEpisode = Boolean(episodeUrl)
+      || (Number(item.ep_size) > 0 && /观看/.test(plainText(item.button_text)))
+    if (!seasonUrl || !hasPlayableEpisode) return []
+
+    const exactTitle = normalizeTitle(title) === normalizedKeyword || normalizeTitle(originalTitle) === normalizedKeyword
+    return [{
+      match: {
+        sourceType: "official" as const,
+        title,
+        url: seasonUrl,
+        author: "哔哩哔哩番剧",
+        playCount: 0,
+        danmakuCount: 0,
+        durationSeconds: 0,
+        score: 1_000 + relevance * 100 + (exactTitle ? 100 : 0),
+      },
+      exactTitle,
+      relevance,
+    }]
+  })
+    .sort((left, right) => Number(right.exactTitle) - Number(left.exactTitle) || right.relevance - left.relevance)
+
+  return candidates[0]?.match ?? null
+}
+
 export async function findBestAnimeWatchLink(title: string): Promise<AnimeWatchMatch> {
   const keyword = title.trim()
   if (!keyword) throw new Error("请先填写番剧名称")
-  const pages = await Promise.allSettled(SEARCH_ORDERS.map((order) => searchPage(keyword, order)))
+  const [officialPage, ...pages] = await Promise.allSettled([
+    searchOfficialBangumi(keyword),
+    ...SEARCH_ORDERS.map((order) => searchPage(keyword, order)),
+  ])
+  if (officialPage.status === "fulfilled") {
+    const official = findOfficialBangumi(keyword, officialPage.value)
+    if (official) return official
+  }
+
   const videos = pages.flatMap((result) => result.status === "fulfilled" ? result.value : [])
   if (!videos.length) {
     const failure = pages.find((result): result is PromiseRejectedResult => result.status === "rejected")
@@ -182,6 +292,7 @@ export async function findBestAnimeWatchLink(title: string): Promise<AnimeWatchM
   const url = bvid ? `https://www.bilibili.com/video/${bvid}` : plainText(best.item.arcurl)
   if (!url) throw new Error("匹配结果缺少可用的视频链接")
   return {
+    sourceType: "video",
     title: best.title,
     url,
     author: plainText(best.item.author),

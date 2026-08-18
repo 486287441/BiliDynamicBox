@@ -17,7 +17,10 @@
       </div>
 
       <section class="video-detail-summary">
-        <div class="video-detail-summary-title"><Icon icon="mingcute:sparkles-2-line" /><strong>AI 摘要</strong><small>由 billnext 生成</small></div>
+        <div class="video-detail-summary-title">
+          <Icon icon="mingcute:sparkles-2-line" /><strong>AI 摘要</strong><small>由 billnext 生成</small>
+          <a v-if="completed" :href="transcriberOutputUrl" target="_blank" rel="noopener noreferrer">查看帮读结果</a>
+        </div>
         <p>{{ summaryText }}</p>
         <ul v-if="recommendation">
           <li><strong>{{ recommendation.grade }} · {{ recommendation.score }}分</strong></li>
@@ -29,7 +32,7 @@
 
       <div class="video-detail-actions">
         <button type="button" :disabled="pending" @click="$emit('want-watch')"><Icon icon="mingcute:eye-2-line" />{{ wantWatched ? '已想看' : '想看' }}</button>
-        <button class="primary" type="button" :disabled="pending || transcribing" @click="$emit('help-read')"><Icon icon="mingcute:sparkles-2-line" />{{ transcribing ? '正在帮读' : '帮我读' }}</button>
+        <button class="primary" type="button" :disabled="pending || Boolean(transcriberState)" @click="$emit('help-read')"><Icon icon="mingcute:sparkles-2-line" />{{ helpReadLabel }}</button>
         <button type="button" :disabled="pending" @click="$emit('dislike')"><Icon icon="mingcute:close-circle-line" />不想看</button>
       </div>
     </aside>
@@ -60,6 +63,9 @@ const upSpaceUrl = computed(() => props.card?.upMid ? "https://space.bilibili.co
 const recommendation = computed(() => props.transcriberState?.recommendation)
 const recommendationReason = computed(() => recommendation.value?.recommendation_reason || recommendation.value?.reason || recommendation.value?.scoring_reason || "")
 const transcribing = computed(() => props.transcriberState?.state === "transcribing")
+const completed = computed(() => props.transcriberState?.state === "completed")
+const transcriberOutputUrl = computed(() => props.transcriberState?.outputUrl || "http://127.0.0.1:8765/")
+const helpReadLabel = computed(() => completed.value ? "帮读已完成" : transcribing.value ? "正在帮读" : "帮我读")
 const summaryText = computed(() => {
   if (recommendationReason.value) return recommendationReason.value
   if (transcribing.value) return "正在提取视频内容并整理重点，完成后会在这里呈现可快速扫读的摘要。"

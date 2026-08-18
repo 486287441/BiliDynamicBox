@@ -45,35 +45,13 @@
             </header>
 
             <div class="settings-modal-body">
-              <section id="settings-panel-dynamics" v-show="activeSettingsSection === 'dynamics'" class="settings-section" aria-label="动态设置">
-                <div class="settings-control-grid">
-                  <div class="settings-control">
-                    <label>动态浏览模式</label>
-                    <div class="settings-segmented">
-                      <button v-for="option in viewModeOptions" :key="option.value" type="button" :class="{ active: viewMode === option.value }" @click="setViewMode(option.value)">{{ option.label }}</button>
-                    </div>
-                    <small>仅改变动态页的收件箱与 UP 主筛选视图。</small>
-                  </div>
-                  <div class="settings-control settings-control-grow">
-                    <label>动态搜索范围</label>
-                    <div class="settings-search-row">
-                      <div class="settings-segmented">
-                        <button type="button" :class="{ active: searchScope === 'dynamics' }" @click="$emit('update:searchScope', 'dynamics')">当前动态</button>
-                        <button type="button" :class="{ active: searchScope === 'bilibili' }" @click="$emit('update:searchScope', 'bilibili')">B 站</button>
-                      </div>
-                      <input class="settings-input" type="search" :value="searchQuery" :placeholder="searchScope === 'bilibili' ? '搜索 B 站，按回车打开结果' : '搜索视频标题或 UP 主'" @input="onSearchInput" @keydown="onSearchKeydown" />
-                    </div>
-                  </div>
-                </div>
-              </section>
-
               <section id="settings-panel-global" v-show="activeSettingsSection === 'global'" class="settings-section" aria-label="跨页面设置">
                 <button class="settings-toggle-row" type="button" @click="$emit('toggle-hide-want-watch')">
                   <span><strong>处理后隐藏“想看”卡片</strong><small>影响首页与动态列表，只保留尚未处理的视频</small></span>
                   <i :class="{ active: hideWantWatch }"><b></b></i>
                 </button>
                 <button class="settings-toggle-row" type="button" @click="$emit('toggle-open-video-on-want-watch')">
-                  <span><strong>点击“想看”时打开视频</strong><small>适用于首页、动态与资料库中的视频卡片</small></span>
+                  <span><strong>点击“想看”时后台打开视频</strong><small>新建标签但留在当前页面，方便连续挑选</small></span>
                   <i :class="{ active: openVideoOnWantWatch }"><b></b></i>
                 </button>
                 <button class="settings-toggle-row" type="button" @click="$emit('toggle-sidebar-collapsed')">
@@ -112,10 +90,9 @@
 import { Icon } from "@iconify/vue"
 import { computed, ref } from "vue"
 import type { ContentCategoryFilter } from "../domain/content-category"
-import { VIEW_MODE_LABELS, type ViewMode } from "../domain/view-mode"
+import type { ViewMode } from "../domain/view-mode"
 
-export type SearchScope = "dynamics" | "bilibili"
-type SettingsSectionId = "dynamics" | "global" | "ai" | "data"
+type SettingsSectionId = "global" | "ai" | "data"
 
 const settingsSections: Array<{
   value: SettingsSectionId
@@ -125,7 +102,6 @@ const settingsSections: Array<{
   description: string
   icon: string
 }> = [
-  { value: "dynamics", label: "动态", caption: "收件箱、搜索与分类", scope: "仅影响动态", description: "管理动态收件箱的视图、搜索和内容分类。", icon: "mingcute:planet-line" },
   { value: "global", label: "跨页面", caption: "通用处理与界面行为", scope: "影响多个页面", description: "管理首页、动态及其他视频卡片共用的处理与界面行为。", icon: "mingcute:adjustment-line" },
   { value: "ai", label: "AI 分类", caption: "DeepSeek 连接", scope: "服务于动态分类", description: "配置动态内容分类所需的 AI 服务。", icon: "mingcute:sparkles-2-line" },
   { value: "data", label: "数据与入口", caption: "稍后再看和管理", scope: "通用入口", description: "访问稍后再看、垃圾箱和 UP 主筛选。", icon: "mingcute:folder-open-2-line" },
@@ -134,8 +110,6 @@ const settingsSections: Array<{
 const props = defineProps<{
   viewMode: ViewMode
   trashCount: number
-  searchQuery: string
-  searchScope: SearchScope
   hideWantWatch: boolean
   openVideoOnWantWatch: boolean
   sidebarCollapsed: boolean
@@ -150,32 +124,16 @@ const emit = defineEmits<{
   (event: "toggle-open-video-on-want-watch"): void
   (event: "toggle-sidebar-collapsed"): void
   (event: "update:viewMode", value: ViewMode): void
-  (event: "update:searchQuery", value: string): void
-  (event: "update:searchScope", value: SearchScope): void
   (event: "update:categoryFilter", value: ContentCategoryFilter): void
   (event: "save-ai-key", value: string): void
 }>()
-const viewModeOptions: Array<{ value: ViewMode; label: string }> = [
-  { value: "inbox", label: VIEW_MODE_LABELS.inbox },
-  { value: "up-filter", label: VIEW_MODE_LABELS["up-filter"] },
-]
 const toolsPanelOpen = ref(false)
-const activeSettingsSection = ref<SettingsSectionId>("dynamics")
+const activeSettingsSection = ref<SettingsSectionId>("global")
 const activeSettingsMeta = computed(() => settingsSections.find((section) => section.value === activeSettingsSection.value) ?? settingsSections[0])
 const draftApiKey = ref("")
 function openToolsPanel(): void { toolsPanelOpen.value = true }
 function close(): void { toolsPanelOpen.value = false }
 function setViewMode(mode: ViewMode): void { emit("update:viewMode", mode) }
-function onSearchInput(event: Event): void {
-  const target = event.target
-  if (target instanceof HTMLInputElement) emit("update:searchQuery", target.value)
-}
-function onSearchKeydown(event: KeyboardEvent): void {
-  if (props.searchScope !== "bilibili" || event.key !== "Enter") return
-  event.preventDefault()
-  const value = props.searchQuery.trim()
-  if (value) window.open("https://search.bilibili.com/all?keyword=" + encodeURIComponent(value), "_blank", "noopener,noreferrer")
-}
 function saveAiKey(): void {
   if (!draftApiKey.value.trim() && !props.aiConfigured) return
   emit("save-ai-key", draftApiKey.value.trim())

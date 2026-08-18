@@ -2,6 +2,7 @@ import type { VideoDynamicCard } from "../domain/types"
 import type { AnimeTrackingItem, AnimeTrackingKind } from "../domain/anime-tracking"
 import type { ViewMode } from "../domain/view-mode"
 import { normalizePublishAfterDate } from "../domain/publish-date-filter"
+import type { BilibiliAvailabilityStatus, BilibiliCompleteness, ChecklistAvailability } from "../domain/checklist"
 
 const LEGACY_DISLIKED_KEY = "bewly:disliked-dynamic-ids"
 const STORAGE_KEY = "bewly:inbox-state"
@@ -28,6 +29,8 @@ export interface PersistedInboxState {
   sidebarCollapsed: boolean
   viewMode: ViewMode
   trackedAnime: AnimeTrackingItem[]
+  watchedChecklistIds: string[]
+  checklistAvailability: Record<string, ChecklistAvailability>
 }
 
 interface PersistedEnvelope {
@@ -50,6 +53,36 @@ const EMPTY_STATE: PersistedInboxState = {
   sidebarCollapsed: false,
   viewMode: "inbox",
   trackedAnime: [],
+  watchedChecklistIds: [],
+  checklistAvailability: {},
+}
+
+function normalizeChecklistAvailability(value: unknown): Record<string, ChecklistAvailability> {
+  if (!value || typeof value !== "object") return {}
+  const statuses = new Set<BilibiliAvailabilityStatus>(["available", "unavailable", "unknown"])
+  const completeness = new Set<BilibiliCompleteness>(["runtime_match", "possibly_cut", "runtime_differs", "unverifiable", "unknown"])
+  const result: Record<string, ChecklistAvailability> = {}
+  for (const [rawKey, raw] of Object.entries(value as Record<string, unknown>)) {
+    const key = rawKey.trim()
+    if (!/^(imdb|douban):/.test(key) || !raw || typeof raw !== "object") continue
+    const item = raw as Partial<ChecklistAvailability>
+    if (!statuses.has(item.status as BilibiliAvailabilityStatus) || !completeness.has(item.completeness as BilibiliCompleteness)) continue
+    result[key] = {
+      key,
+      fingerprint: typeof item.fingerprint === "string" ? item.fingerprint : "",
+      status: item.status as BilibiliAvailabilityStatus,
+      completeness: item.completeness as BilibiliCompleteness,
+      biliTitle: typeof item.biliTitle === "string" ? item.biliTitle : "",
+      biliUrl: typeof item.biliUrl === "string" && /^https:\/\/(?:www\.)?bilibili\.com\//.test(item.biliUrl) ? item.biliUrl : "",
+      seasonId: typeof item.seasonId === "number" ? Math.max(0, Math.floor(item.seasonId)) : 0,
+      referenceRuntimeSeconds: typeof item.referenceRuntimeSeconds === "number" ? Math.max(0, Math.floor(item.referenceRuntimeSeconds)) : 0,
+      biliRuntimeSeconds: typeof item.biliRuntimeSeconds === "number" ? Math.max(0, Math.floor(item.biliRuntimeSeconds)) : 0,
+      checkedAt: typeof item.checkedAt === "number" ? Math.max(0, Math.floor(item.checkedAt)) : 0,
+      confidence: item.confidence === "high" || item.confidence === "medium" ? item.confidence : "unknown",
+      note: typeof item.note === "string" ? item.note.slice(0, 240) : "",
+    }
+  }
+  return Object.fromEntries(Object.entries(result).sort((left, right) => right[1].checkedAt - left[1].checkedAt).slice(0, 1000))
 }
 
 function normalizeTrackedAnime(value: unknown): AnimeTrackingItem[] {
@@ -224,6 +257,8 @@ function normalizeState(value: unknown): PersistedInboxState {
     sidebarCollapsed: state.sidebarCollapsed === true,
     viewMode: "inbox",
     trackedAnime: normalizeTrackedAnime(state.trackedAnime),
+    watchedChecklistIds: normalizeIdList(state.watchedChecklistIds).filter((id) => /^(imdb|douban|bangumi):/.test(id)).slice(-1000),
+    checklistAvailability: normalizeChecklistAvailability(state.checklistAvailability),
   }
 }
 
